@@ -11,6 +11,7 @@
 #define RIGHT 'd'
 #define NOKEY ERR
 
+#define DEBUG
 #define FRAMES_PER_SECOND 20
 #define GAME_LENGTH 120 // Game length in seconds
 
@@ -59,7 +60,6 @@ WINDOW *InitScreen() {
   start_color();
   init_pair(PLAY_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(STAT_COLOR, COLOR_YELLOW + 8, COLOR_BLUE);
-
   init_pair(DEBUG_COLOR, COLOR_RED + 8, COLOR_BLACK);
 
   // Don't echo typed characters to screen
@@ -91,7 +91,8 @@ void CleanWin(WIN *W, int bo) {
 }
 
 WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
-             int bo) {
+             int bo, int is_debug) {
+
   WIN *W = (WIN *)malloc(sizeof(WIN));
 
   // Store window properties
@@ -103,6 +104,12 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 
   // Create ncurses subwindow
   W->window = subwin(parent, rows, cols, y, x);
+
+#ifndef DEBUG
+  if (is_debug) {
+    return W;
+  }
+#endif
 
   // Clear the window
   CleanWin(W, bo);
@@ -160,6 +167,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
 }
 
 void ShowDebug(WIN *W, const char *msg) {
+#ifdef DEBUG
   // Set status bar color
   wattron(W->window, COLOR_PAIR(W->color));
 
@@ -173,6 +181,7 @@ void ShowDebug(WIN *W, const char *msg) {
 
   // Update display
   wrefresh(W->window);
+#endif
 }
 
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
@@ -205,15 +214,16 @@ int main(int argc, char *argv[]) {
   WINDOW *screenwin = InitScreen();
 
   // Play window: 20x80 cells, positioned at (2,5) with border
-  WIN *playwin = InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER);
+  WIN *playwin =
+      InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
 
   // Status window: 4x80 cells, positioned below play window
   WIN *statwin = InitWin(screenwin, STAT_ROWS, COLS, ROWS + OFFY, OFFX,
-                         STAT_COLOR, BORDER);
+                         STAT_COLOR, BORDER, FALSE);
 
   // Debug window: 3x80 cells, positioned below status window
   WIN *debugwin = InitWin(screenwin, 3, COLS, ROWS + OFFY + STAT_ROWS + 1, OFFX,
-                          DEBUG_COLOR, BORDER);
+                          DEBUG_COLOR, BORDER, TRUE);
 
   GAMESTATE *state = InitGame();
 
