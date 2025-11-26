@@ -1,0 +1,33 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C (clang): build active file (ncurses)",
+            "command": "/usr/bin/clang",
+            "args": [
+                "-fcolor-diagnostics",
+                "-fansi-escape-codes",
+                "${file}",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}.o",
+                "-lncurses"
+            ],
+            "options": {
+                "cwd": "${fileDirname}",
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Build active file with clang compiler including ncurses library",
+            "presentation": {
+                "reveal": "silent",
+                "close": true
+            },
+        }
+    ],
+    "version": "2.0.0"
+}
