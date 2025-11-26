@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define DEBUG
+
 #define QUIT 'q'
 #define UP 'w'
 #define DOWN 's'
@@ -11,13 +13,15 @@
 #define RIGHT 'd'
 #define NOKEY ERR
 
-#define DEBUG
+// Timing and speed
 #define FRAMES_PER_SECOND 20
 #define GAME_LENGTH 120 // Game length in seconds
 
 #define PLAY_COLOR 1  // Main window color
 #define STAT_COLOR 2  // Status window color
 #define DEBUG_COLOR 3 // Play area color
+#define END_WIN_COLOR 4 // End game win color
+#define END_LOSE_COLOR 5 // End game lose color
 
 // Window dimensions and position
 #define BORDER 1    // Border width (in characters)
@@ -26,6 +30,12 @@
 #define STAT_ROWS 5 // Status window height (rows)
 #define OFFY 2      // Y offset from top of screen
 #define OFFX 5      // X offset from left of screen
+
+// Game status codes
+#define CONTINUE 0
+#define GAME_TIMEOUT 1
+#define OUT_OF_LIVES 2
+#define USER_QUIT 3
 
 #define TRUE 1
 #define FALSE 0
@@ -46,6 +56,7 @@ typedef struct {
   int frames_elapsed;
   int lives;
   char debug_msg[MAX_DEBUG_LEN];
+  int status;
 } GAMESTATE;
 
 WINDOW *InitScreen() {
@@ -61,6 +72,8 @@ WINDOW *InitScreen() {
   init_pair(PLAY_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(STAT_COLOR, COLOR_YELLOW + 8, COLOR_BLUE);
   init_pair(DEBUG_COLOR, COLOR_RED + 8, COLOR_BLACK);
+  init_pair(END_WIN_COLOR, COLOR_WHITE, COLOR_GREEN);
+  init_pair(END_LOSE_COLOR, COLOR_WHITE, COLOR_RED);
 
   // Don't echo typed characters to screen
   noecho();
@@ -130,34 +143,35 @@ GAMESTATE *InitGame() {
   state->time_elapsed = 0;
   state->frames_elapsed = 0;
   state->lives = 3;
+  state->status = CONTINUE;
 
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Game initialized.");
 
   return state;
 }
 
-void EndGame(WIN *W, char *msg, int sleep_seconds) {
-  // Clear the window
-  CleanWin(W, 1);
+void EndGame(WIN *W, char *msg, int color_pair, int is_main) {
+  W->color = color_pair;
+  CleanWin(W, BORDER);
 
   // Display centered goodbye message
   mvwprintw(W->window, W->rows / 2, (W->cols - strlen(msg)) / 2, msg);
-  wrefresh(W->window);
 
-  // Wait 2 seconds before closing
-  sleep(sleep_seconds);
+  char end_msg[] = "Thanks for playing!";
+  if (is_main) {
+    mvwprintw(W->window, W->rows / 2 + 1, (W->cols - strlen(end_msg)) / 2,
+              end_msg);
+  }
+
+  wrefresh(W->window);
 }
 
 void ShowStatus(WIN *W, GAMESTATE *state) {
-  // Set status bar color
-  wattron(W->window, COLOR_PAIR(W->color));
-
-  // Draw border around status bar
-  box(W->window, 0, 0);
+  CleanWin(W, BORDER);
 
   // Display game statistics
-  mvwprintw(W->window, 1, 2, "Score: %d  Time: %d s  Lives: %d", state->score,
-            state->time_elapsed, state->lives);
+  mvwprintw(W->window, 1, 2, "Score: %d  Time left: %d s  Lives: %d",
+            state->score, GAME_LENGTH - state->time_elapsed, state->lives);
 
   // Display controls
   mvwprintw(W->window, 2, 2, "[WASD]=Move [Q]=Quit");
@@ -190,8 +204,10 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   while (1) {
     ch = wgetch(statwin->window);
 
-    if (ch == QUIT)
+    if (ch == QUIT) {
+      state->status = USER_QUIT;
       break;
+    }
 
     // todo: update game state etc
 
@@ -200,8 +216,17 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     ShowDebug(debugwin, state->debug_msg);
     ShowStatus(statwin, state);
-
     wrefresh(playwin->window); // Refresh play window
+
+    if (state->time_elapsed >= GAME_LENGTH) {
+      state->status = GAME_TIMEOUT;
+      break;
+    }
+
+    if (state->lives <= 0) {
+      state->status = OUT_OF_LIVES;
+      break;
+    }
 
     flushinp(); // Clear input buffer to avoid key press accumulation
 
@@ -229,8 +254,36 @@ int main(int argc, char *argv[]) {
 
   MainLoop(playwin, statwin, debugwin, state);
 
-  EndGame(statwin, "Statistics will be saved to a file", 0);
-  EndGame(playwin, "Game Over! Thanks for playing!", 2);
+  switch (state->status) {
+  case GAME_TIMEOUT: {
+    EndGame(playwin, "Time's up!", END_LOSE_COLOR, TRUE);
+    break;
+  }
+
+  case OUT_OF_LIVES: {
+    EndGame(playwin, "Out of lives!", END_LOSE_COLOR, TRUE);
+    break;
+  }
+
+  case USER_QUIT: {
+    EndGame(playwin, "You quit the game.", END_LOSE_COLOR, TRUE);
+    break;
+  }
+
+  case CONTINUE: {
+    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR, TRUE);
+    break;
+  }
+
+  default: {
+    EndGame(playwin, "You win!", END_WIN_COLOR, TRUE);
+    break;
+  }
+  }
+
+  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR, FALSE);
+  CleanWin(statwin, BORDER);
+  sleep(2); // Wait 2 seconds before closing
 
   // Delete ncurses windows
   delwin(playwin->window);
