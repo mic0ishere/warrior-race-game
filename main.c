@@ -36,6 +36,7 @@
 #define GAME_TIMEOUT 1
 #define OUT_OF_LIVES 2
 #define USER_QUIT 3
+#define WIN_POINTS 10
 
 #define TRUE 1
 #define FALSE 0
@@ -58,6 +59,7 @@ typedef struct {
 typedef struct {
   POSITION pos;
   int points;
+  int is_collected;
 } TOTEM;
 
 typedef struct {
@@ -242,6 +244,7 @@ LEVEL *LoadLevel(const char *filename) {
       sscanf(line, "WIN_SCORE=%d", &level->win_score);
     } else if (strcmp(current_section, "[TOTEMS]") == 0) {
       TOTEM new_totem;
+      new_totem.is_collected = FALSE;
       sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
              &new_totem.points);
 
@@ -388,11 +391,33 @@ void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
   }
 }
 
+void CollectTokens(GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_totems; i++) {
+    TOTEM *totem = &state->level->totems[i];
+    if (!totem->is_collected && totem->pos.x == state->player_pos.x &&
+        totem->pos.y == state->player_pos.y) {
+      state->score += totem->points;
+      totem->is_collected = TRUE;
+    }
+  }
+}
+
 void RenderPlayArea(WIN *W, GAMESTATE *state) {
   CleanWin(W, 0);
 
-  // Draw player at center
-  mvwprintw(W->window, W->rows / 2, W->cols / 2, "@");
+  // Draw totems
+  for (int i = 0; i < state->level->num_totems; i++) {
+    TOTEM *totem = &state->level->totems[i];
+    if (totem->is_collected)
+      continue;
+    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state);
+  }
+
+  // Draw enemies
+  for (int i = 0; i < state->level->num_enemies; i++) {
+    ENEMY *enemy = &state->level->enemies[i];
+    SafePrintEntity(W, enemy->pos1.x, enemy->pos1.y, "E", state);
+  }
 
   // Draw obstacles
   for (int i = 0; i < state->level->num_obstacles; i++) {
@@ -405,18 +430,6 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     }
   }
 
-  // Draw totems
-  for (int i = 0; i < state->level->num_totems; i++) {
-    TOTEM *totem = &state->level->totems[i];
-    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state);
-  }
-
-  // Draw enemies
-  for (int i = 0; i < state->level->num_enemies; i++) {
-    ENEMY *enemy = &state->level->enemies[i];
-    SafePrintEntity(W, enemy->pos1.x, enemy->pos1.y, "E", state);
-  }
-
   // Draw level boundaries
   for (int x = 0; x < state->level->width; x++) {
     SafePrintEntity(W, x, -1, "-", state);
@@ -427,6 +440,9 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     SafePrintEntity(W, -1, y, "|", state);
     SafePrintEntity(W, state->level->width, y, "|", state);
   }
+
+  // Draw player
+  mvwprintw(W->window, W->rows / 2, W->cols / 2, "@");
 
   wrefresh(W->window);
 }
@@ -479,6 +495,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
              state->player_pos.x, state->player_pos.y);
 
     RenderPlayArea(playwin, state);
+    CollectTokens(state);
 
     state->frames_elapsed++;
     state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
@@ -494,6 +511,11 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     if (state->lives_left <= 0) {
       state->status = OUT_OF_LIVES;
+      break;
+    }
+
+    if (state->score >= state->level->win_score) {
+      state->status = WIN_POINTS;
       break;
     }
 
@@ -524,30 +546,29 @@ int main(int argc, char *argv[]) {
   MainLoop(playwin, statwin, debugwin, state);
 
   switch (state->status) {
-  case GAME_TIMEOUT: {
+  case GAME_TIMEOUT:
     EndGame(playwin, "Time's up!", END_LOSE_COLOR, TRUE);
     break;
-  }
 
-  case OUT_OF_LIVES: {
+  case OUT_OF_LIVES:
     EndGame(playwin, "Out of lives!", END_LOSE_COLOR, TRUE);
     break;
-  }
 
-  case USER_QUIT: {
+  case USER_QUIT:
     EndGame(playwin, "You quit the game.", END_LOSE_COLOR, TRUE);
     break;
-  }
 
-  case CONTINUE: {
+  case CONTINUE:
     EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR, TRUE);
     break;
-  }
 
-  default: {
+  case WIN_POINTS:
+    EndGame(playwin, "You collected enough points!", END_WIN_COLOR, TRUE);
+    break;
+
+  default:
     EndGame(playwin, "You win!", END_WIN_COLOR, TRUE);
     break;
-  }
   }
 
   // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR,
