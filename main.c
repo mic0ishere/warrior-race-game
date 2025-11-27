@@ -376,6 +376,12 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
             state->level->time_limit - state->time_elapsed, state->lives_left,
             state->level->lives);
 
+  char pos_str[32];
+  snprintf(pos_str, sizeof(pos_str), "(%d,%d)", state->player_pos.x,
+           state->player_pos.y);
+  mvwprintw(W->window, 1, COLS - BORDER - strlen(pos_str), pos_str,
+            state->player_pos.x, state->player_pos.y);
+
   // Display controls
   mvwprintw(W->window, 2, 2, "[WASD]=Move [Q]=Quit");
 
