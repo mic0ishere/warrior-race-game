@@ -366,6 +366,12 @@ void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
   *screen_y = center_y + (state->player_pos.y - level_y);
 }
 
+int CheckWithinBounds(int pos1_x, int pos1_y, int pos2_x, int pos2_y,
+                      POSITION point) {
+  return (point.x >= pos1_x && point.x <= pos2_x && point.y >= pos1_y &&
+          point.y <= pos2_y);
+}
+
 void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
                      GAMESTATE *state) {
   // Don't draw outside level boundaries
@@ -374,11 +380,11 @@ void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
     return;
   }
 
-  int draw_x, draw_y;
-  LevelToScreenCoords(W, screen_x, screen_y, state, &draw_x, &draw_y);
+  POSITION draw_pos;
+  LevelToScreenCoords(W, screen_x, screen_y, state, &draw_pos.x, &draw_pos.y);
 
-  if (draw_x >= 0 && draw_x < W->cols && draw_y >= 0 && draw_y < W->rows) {
-    mvwprintw(W->window, draw_y, draw_x, symbol);
+  if (CheckWithinBounds(0, 0, W->cols - 1, W->rows - 1, draw_pos)) {
+    mvwprintw(W->window, draw_pos.y, draw_pos.x, symbol);
   }
 }
 
@@ -425,6 +431,19 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   wrefresh(W->window);
 }
 
+int CheckWithinObstacle(GAMESTATE *state, POSITION wanted_pos) {
+  // Check for collisions with obstacles
+  for (int i = 0; i < state->level->num_obstacles; i++) {
+    OBSTACLE *obs = &state->level->obstacles[i];
+    if (CheckWithinBounds(obs->pos1.x, obs->pos1.y, obs->pos2.x, obs->pos2.y,
+                          wanted_pos)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   POSITION wanted_pos;
@@ -450,8 +469,9 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       wanted_pos.x++;
     }
 
-    if (wanted_pos.x < state->level->width && wanted_pos.x >= 0 &&
-        wanted_pos.y < state->level->height && wanted_pos.y >= 0) {
+    if (CheckWithinBounds(0, 0, state->level->width - 1,
+                          state->level->height - 1, wanted_pos) &&
+        !CheckWithinObstacle(state, wanted_pos)) {
       state->player_pos = wanted_pos;
     }
 
