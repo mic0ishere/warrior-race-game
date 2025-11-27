@@ -1,30 +1,27 @@
 [CONFIG]
 TIME=60
 LIVES=3
-WIDTH=80
-HEIGHT=60
-START_X=10
-START_Y=10
-WIN_SCORE=50
+WIDTH=30
+HEIGHT=30
+START_X=0
+START_Y=0
+WIN_SCORE=30
 
 [TOTEMS]
 # (x,y) points
-(15,15) 10
-(70,50) 20
-(40,30) 15
-(25,45) 5
+(10,10) 10
+(15,15) 15
+(25,25) 20
 
 [OBSTACLES]
 # (x1,y1) (x2,y2)
-(5,5) (5,55)
-(5,55) (75,55)
-(75,55) (75,5)
-(75,5) (5,5)
-(30,20) (50,20)
+(5,5) (8,8)
+(0,15) (7,16)
+(10,15) (30,16)
 
 [ENEMIES]
-# (x1,y1) (x2,y2) speed
-(20,10) (20,15) 2
-(60,10) (60,50) 3
-(10,30) (70,30) 4
-(60,10) (60,50) 1
+# (x1,y1) (x2,y2) speed direction[-1,1]
+# when direction is -1, enemy starts at pos2 and moves towards pos1
+(0,10) (10,10) 1 -1
+(20,20) (20,25) 2
+(0,15) (30,15) 5
