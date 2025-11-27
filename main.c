@@ -40,8 +40,12 @@
 
 #define TRUE 1
 #define FALSE 0
+#define DIR_FORWARD 1
+#define DIR_BACKWARD -1
 #define MAX_DEBUG_LEN COLS - 3
 #define MAX_LINE_LEN 256
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
@@ -67,9 +71,18 @@ typedef struct {
   POSITION pos2;
 } OBSTACLE;
 
+typedef enum {
+  ENEMY_PATROL_HORIZONTAL,
+  ENEMY_PATROL_VERTICAL,
+  ENEMY_TYPE_UNKNOWN
+} ENEMY_TYPE;
+
 typedef struct {
   POSITION pos1;
   POSITION pos2;
+  POSITION current_pos;
+  ENEMY_TYPE type;
+  int direction; // 1=forward, -1=backward
   int speed;
 } ENEMY;
 
@@ -269,8 +282,38 @@ LEVEL *LoadLevel(const char *filename) {
       }
     } else if (strcmp(current_section, "[ENEMIES]") == 0) {
       ENEMY new_enemy;
-      sscanf(line, "(%d,%d) (%d,%d) %d", &new_enemy.pos1.x, &new_enemy.pos1.y,
-             &new_enemy.pos2.x, &new_enemy.pos2.y, &new_enemy.speed);
+      sscanf(line, "(%d,%d) (%d,%d) %d %d", &new_enemy.pos1.x,
+             &new_enemy.pos1.y, &new_enemy.pos2.x, &new_enemy.pos2.y,
+             &new_enemy.speed, &new_enemy.direction);
+
+      if (new_enemy.direction != DIR_BACKWARD &&
+          new_enemy.direction != DIR_FORWARD) {
+        new_enemy.direction = DIR_FORWARD;
+        fprintf(stderr,
+                "Warning: Enemies[%d] has invalid direction. Set to FORWARD.\n",
+                level->num_enemies);
+      }
+
+      int verified_speed = MIN(MAX(new_enemy.speed, 1), 5);
+      if (verified_speed != new_enemy.speed) {
+        fprintf(stderr,
+                "Warning: Enemies[%d] speed %d out of bounds. Clamped to %d.\n",
+                level->num_enemies, new_enemy.speed, verified_speed);
+        new_enemy.speed = verified_speed;
+      }
+
+      new_enemy.current_pos =
+          new_enemy.direction == DIR_BACKWARD ? new_enemy.pos2 : new_enemy.pos1;
+
+      if (new_enemy.pos1.y == new_enemy.pos2.y) {
+        new_enemy.type = ENEMY_PATROL_HORIZONTAL;
+      } else if (new_enemy.pos1.x == new_enemy.pos2.x) {
+        new_enemy.type = ENEMY_PATROL_VERTICAL;
+      } else {
+        new_enemy.type = ENEMY_TYPE_UNKNOWN;
+        fprintf(stderr, "Warning: Enemies[%d] with unknown patrol type.\n",
+                level->num_enemies);
+      }
 
       level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
                                                &level->num_enemies, &new_enemy);
@@ -375,6 +418,21 @@ int CheckWithinBounds(int pos1_x, int pos1_y, int pos2_x, int pos2_y,
           point.y <= pos2_y);
 }
 
+int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
+  // Check obstacles
+  for (int i = 0; i < state->level->num_obstacles; i++) {
+    OBSTACLE *obs = &state->level->obstacles[i];
+    if (CheckWithinBounds(obs->pos1.x, obs->pos1.y, obs->pos2.x, obs->pos2.y,
+                          wanted_pos)) {
+      return FALSE;
+    }
+  }
+
+  // Check if inside the game area
+  return CheckWithinBounds(0, 0, state->level->width - 1,
+                           state->level->height - 1, wanted_pos);
+}
+
 void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
                      GAMESTATE *state) {
   // Don't draw outside level boundaries
@@ -402,6 +460,44 @@ void CollectTokens(GAMESTATE *state) {
   }
 }
 
+POSITION NextEnemyPosition(ENEMY *enemy) {
+  POSITION next_pos = enemy->current_pos;
+  int move_amount = enemy->direction;
+
+  if (enemy->type == ENEMY_PATROL_HORIZONTAL) {
+    next_pos.x += move_amount;
+  } else if (enemy->type == ENEMY_PATROL_VERTICAL) {
+    next_pos.y += move_amount;
+  }
+
+  return next_pos;
+}
+
+void MoveEnemies(GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_enemies; i++) {
+    ENEMY *enemy = &state->level->enemies[i];
+    if (enemy->type == ENEMY_TYPE_UNKNOWN) {
+      continue; // Skip enemies with unknown type
+    }
+
+    if (state->frames_elapsed % (FRAMES_PER_SECOND / enemy->speed) != 0) {
+      continue; // Move based on enemy speed
+    }
+
+    POSITION wanted_pos = NextEnemyPosition(enemy);
+
+    if (!CheckCollision(state, wanted_pos) ||
+        !CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
+                           enemy->pos2.y, wanted_pos)) {
+      enemy->direction *= -1; // Reverse direction
+      enemy->current_pos = NextEnemyPosition(enemy);
+      continue;
+    }
+
+    enemy->current_pos = wanted_pos;
+  }
+}
+
 void RenderPlayArea(WIN *W, GAMESTATE *state) {
   CleanWin(W, 0);
 
@@ -416,7 +512,7 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   // Draw enemies
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
-    SafePrintEntity(W, enemy->pos1.x, enemy->pos1.y, "E", state);
+    SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state);
   }
 
   // Draw obstacles
@@ -447,19 +543,6 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   wrefresh(W->window);
 }
 
-int CheckWithinObstacle(GAMESTATE *state, POSITION wanted_pos) {
-  // Check for collisions with obstacles
-  for (int i = 0; i < state->level->num_obstacles; i++) {
-    OBSTACLE *obs = &state->level->obstacles[i];
-    if (CheckWithinBounds(obs->pos1.x, obs->pos1.y, obs->pos2.x, obs->pos2.y,
-                          wanted_pos)) {
-      return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   POSITION wanted_pos;
@@ -485,9 +568,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       wanted_pos.x++;
     }
 
-    if (CheckWithinBounds(0, 0, state->level->width - 1,
-                          state->level->height - 1, wanted_pos) &&
-        !CheckWithinObstacle(state, wanted_pos)) {
+    if (CheckCollision(state, wanted_pos)) {
       state->player_pos = wanted_pos;
     }
 
@@ -496,6 +577,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     RenderPlayArea(playwin, state);
     CollectTokens(state);
+    MoveEnemies(state);
 
     state->frames_elapsed++;
     state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
@@ -587,6 +669,7 @@ int main(int argc, char *argv[]) {
   refresh();
 
   // Free allocated memory
+  FreeLevel(state->level);
   free(state);
   free(playwin);
   free(statwin);
