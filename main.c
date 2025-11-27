@@ -15,12 +15,12 @@
 
 // Timing and speed
 #define FRAMES_PER_SECOND 20
-#define GAME_LENGTH 120 // Game length in seconds
+#define LEVEL_FILE "level1.txt"
 
-#define PLAY_COLOR 1  // Main window color
-#define STAT_COLOR 2  // Status window color
-#define DEBUG_COLOR 3 // Play area color
-#define END_WIN_COLOR 4 // End game win color
+#define PLAY_COLOR 1     // Main window color
+#define STAT_COLOR 2     // Status window color
+#define DEBUG_COLOR 3    // Play area color
+#define END_WIN_COLOR 4  // End game win color
 #define END_LOSE_COLOR 5 // End game lose color
 
 // Window dimensions and position
@@ -40,6 +40,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_DEBUG_LEN COLS - 3
+#define MAX_LINE_LEN 256
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
@@ -51,12 +52,50 @@ typedef struct {
 } WIN;
 
 typedef struct {
+  int x, y;
+} POSITION;
+
+typedef struct {
+  POSITION pos;
+  int points;
+} TOTEM;
+
+typedef struct {
+  POSITION pos1;
+  POSITION pos2;
+} OBSTACLE;
+
+typedef struct {
+  POSITION pos1;
+  POSITION pos2;
+  int speed;
+} ENEMY;
+
+typedef struct {
+  int time_limit;
+  int lives;
+  int win_score;
+  int width, height;
+  POSITION start_pos;
+
+  int num_totems;
+  TOTEM *totems;
+
+  int num_obstacles;
+  OBSTACLE *obstacles;
+
+  int num_enemies;
+  ENEMY *enemies;
+} LEVEL;
+
+typedef struct {
   int score;
   int time_elapsed;
   int frames_elapsed;
-  int lives;
+  int lives_left;
   char debug_msg[MAX_DEBUG_LEN];
   int status;
+  LEVEL *level;
 } GAMESTATE;
 
 WINDOW *InitScreen() {
@@ -136,13 +175,127 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   return W;
 }
 
+void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
+                     const void *new_entry) {
+  void *resized_array = realloc(array, (*num_entries + 1) * entry_size);
+
+  if (resized_array == NULL) {
+    free(array);
+    return NULL;
+  }
+
+  array = resized_array;
+  memcpy((char *)array + (*num_entries) * entry_size, new_entry, entry_size);
+  (*num_entries)++;
+
+  return array;
+}
+
+void FreeLevel(LEVEL *level) {
+  if (level != NULL) {
+    free(level->totems);
+    free(level->obstacles);
+    free(level->enemies);
+    free(level);
+  }
+  level = NULL;
+}
+
+LEVEL *LoadLevel(const char *filename) {
+  LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
+
+  FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+    free(level);
+    return NULL;
+  }
+
+  level->totems = NULL;
+  level->obstacles = NULL;
+  level->enemies = NULL;
+  level->num_totems = 0;
+  level->num_obstacles = 0;
+  level->num_enemies = 0;
+
+  char line[MAX_LINE_LEN];
+  char *current_section;
+
+  while (fgets(line, MAX_LINE_LEN, file)) {
+    line[strcspn(line, "\n")] = 0; // Remove trailing newline
+    if (strlen(line) == 0 || line[0] == '#') {
+      continue; // Skip empty lines and comments
+    }
+
+    if (line[0] == '[' && line[strlen(line) - 1] == ']') {
+      current_section = strdup(line); // Duplicate section name and store it
+      continue;
+    }
+
+    if (strcmp(current_section, "[CONFIG]") == 0) {
+      sscanf(line, "TIME=%d", &level->time_limit);
+      sscanf(line, "LIVES=%d", &level->lives);
+      sscanf(line, "WIDTH=%d", &level->width);
+      sscanf(line, "HEIGHT=%d", &level->height);
+      sscanf(line, "START_X=%d", &level->start_pos.x);
+      sscanf(line, "START_Y=%d", &level->start_pos.y);
+      sscanf(line, "WIN_SCORE=%d", &level->win_score);
+    } else if (strcmp(current_section, "[TOTEMS]") == 0) {
+      TOTEM new_totem;
+      sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
+             &new_totem.points);
+
+      level->totems = (TOTEM *)AddLevelEntity(level->totems, sizeof(TOTEM),
+                                              &level->num_totems, &new_totem);
+      if (level->totems == NULL) {
+        FreeLevel(level);
+        break;
+      }
+
+    } else if (strcmp(current_section, "[OBSTACLES]") == 0) {
+      OBSTACLE new_obstacle;
+      sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x,
+             &new_obstacle.pos1.y, &new_obstacle.pos2.x, &new_obstacle.pos2.y);
+
+      level->obstacles =
+          (OBSTACLE *)AddLevelEntity(level->obstacles, sizeof(OBSTACLE),
+                                     &level->num_obstacles, &new_obstacle);
+      if (level->obstacles == NULL) {
+        FreeLevel(level);
+        break;
+      }
+    } else if (strcmp(current_section, "[ENEMIES]") == 0) {
+      ENEMY new_enemy;
+      sscanf(line, "(%d,%d) (%d,%d) %d", &new_enemy.pos1.x, &new_enemy.pos1.y,
+             &new_enemy.pos2.x, &new_enemy.pos2.y, &new_enemy.speed);
+
+      level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
+                                               &level->num_enemies, &new_enemy);
+      if (level->enemies == NULL) {
+        FreeLevel(level);
+        break;
+      }
+    }
+  }
+
+  fclose(file);
+  return level;
+}
+
 GAMESTATE *InitGame() {
   GAMESTATE *state = (GAMESTATE *)malloc(sizeof(GAMESTATE));
+
+  state->level = LoadLevel(LEVEL_FILE);
+
+  if (state->level == NULL) {
+    free(state);
+    fprintf(stderr, "Error loading level file: %s\n", LEVEL_FILE);
+    exit(EXIT_FAILURE);
+  }
 
   state->score = 0;
   state->time_elapsed = 0;
   state->frames_elapsed = 0;
-  state->lives = 3;
+  state->lives_left = state->level->lives;
   state->status = CONTINUE;
 
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Game initialized.");
@@ -170,8 +323,10 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
   // Display game statistics
-  mvwprintw(W->window, 1, 2, "Score: %d  Time left: %d s  Lives: %d",
-            state->score, GAME_LENGTH - state->time_elapsed, state->lives);
+  mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lives: %d/%d",
+            state->score, state->level->win_score,
+            state->level->time_limit - state->time_elapsed, state->lives_left,
+            state->level->lives);
 
   // Display controls
   mvwprintw(W->window, 2, 2, "[WASD]=Move [Q]=Quit");
@@ -218,12 +373,12 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     ShowStatus(statwin, state);
     wrefresh(playwin->window); // Refresh play window
 
-    if (state->time_elapsed >= GAME_LENGTH) {
+    if (state->time_elapsed >= state->level->time_limit) {
       state->status = GAME_TIMEOUT;
       break;
     }
 
-    if (state->lives <= 0) {
+    if (state->lives_left <= 0) {
       state->status = OUT_OF_LIVES;
       break;
     }
@@ -281,7 +436,8 @@ int main(int argc, char *argv[]) {
   }
   }
 
-  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR, FALSE);
+  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR,
+  // FALSE);
   CleanWin(statwin, BORDER);
   sleep(2); // Wait 2 seconds before closing
 
