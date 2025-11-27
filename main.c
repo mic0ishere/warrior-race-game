@@ -217,6 +217,41 @@ void FreeLevel(LEVEL *level) {
   level = NULL;
 }
 
+ENEMY LoadEnemy(const char *line, int enemy_id) {
+  ENEMY enemy;
+  sscanf(line, "(%d,%d) (%d,%d) %d %d", &enemy.pos1.x, &enemy.pos1.y,
+         &enemy.pos2.x, &enemy.pos2.y, &enemy.speed, &enemy.direction);
+
+  if (enemy.direction != DIR_BACKWARD && enemy.direction != DIR_FORWARD) {
+    enemy.direction = DIR_FORWARD;
+    fprintf(stderr,
+            "Warning: Enemies[%d] has invalid direction. Set to FORWARD.\n",
+            enemy_id);
+  }
+
+  int verified_speed = MIN(MAX(enemy.speed, 1), 5);
+  if (verified_speed != enemy.speed) {
+    fprintf(stderr,
+            "Warning: Enemies[%d] speed %d out of bounds. Clamped to %d.\n",
+            enemy_id, enemy.speed, verified_speed);
+    enemy.speed = verified_speed;
+  }
+
+  enemy.current_pos = enemy.direction == DIR_BACKWARD ? enemy.pos2 : enemy.pos1;
+
+  if (enemy.pos1.y == enemy.pos2.y) {
+    enemy.type = ENEMY_PATROL_HORIZONTAL;
+  } else if (enemy.pos1.x == enemy.pos2.x) {
+    enemy.type = ENEMY_PATROL_VERTICAL;
+  } else {
+    enemy.type = ENEMY_TYPE_UNKNOWN;
+    fprintf(stderr, "Warning: Enemies[%d] with unknown patrol type.\n",
+            enemy_id);
+  }
+
+  return enemy;
+}
+
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
 
@@ -281,42 +316,9 @@ LEVEL *LoadLevel(const char *filename) {
         break;
       }
     } else if (strcmp(current_section, "[ENEMIES]") == 0) {
-      ENEMY new_enemy;
-      sscanf(line, "(%d,%d) (%d,%d) %d %d", &new_enemy.pos1.x,
-             &new_enemy.pos1.y, &new_enemy.pos2.x, &new_enemy.pos2.y,
-             &new_enemy.speed, &new_enemy.direction);
-
-      if (new_enemy.direction != DIR_BACKWARD &&
-          new_enemy.direction != DIR_FORWARD) {
-        new_enemy.direction = DIR_FORWARD;
-        fprintf(stderr,
-                "Warning: Enemies[%d] has invalid direction. Set to FORWARD.\n",
-                level->num_enemies);
-      }
-
-      int verified_speed = MIN(MAX(new_enemy.speed, 1), 5);
-      if (verified_speed != new_enemy.speed) {
-        fprintf(stderr,
-                "Warning: Enemies[%d] speed %d out of bounds. Clamped to %d.\n",
-                level->num_enemies, new_enemy.speed, verified_speed);
-        new_enemy.speed = verified_speed;
-      }
-
-      new_enemy.current_pos =
-          new_enemy.direction == DIR_BACKWARD ? new_enemy.pos2 : new_enemy.pos1;
-
-      if (new_enemy.pos1.y == new_enemy.pos2.y) {
-        new_enemy.type = ENEMY_PATROL_HORIZONTAL;
-      } else if (new_enemy.pos1.x == new_enemy.pos2.x) {
-        new_enemy.type = ENEMY_PATROL_VERTICAL;
-      } else {
-        new_enemy.type = ENEMY_TYPE_UNKNOWN;
-        fprintf(stderr, "Warning: Enemies[%d] with unknown patrol type.\n",
-                level->num_enemies);
-      }
-
+      ENEMY enemy = LoadEnemy(line, level->num_enemies);
       level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
-                                               &level->num_enemies, &new_enemy);
+                                               &level->num_enemies, &enemy);
       if (level->enemies == NULL) {
         FreeLevel(level);
         break;
