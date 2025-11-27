@@ -506,6 +506,18 @@ void MoveEnemies(GAMESTATE *state) {
   }
 }
 
+void CheckPlayerEnemyCollision(GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_enemies; i++) {
+    ENEMY *enemy = &state->level->enemies[i];
+    if (enemy->current_pos.x == state->player_pos.x &&
+        enemy->current_pos.y == state->player_pos.y) {
+      state->lives_left--;
+      state->player_pos = state->level->start_pos; // Reset player position
+      break;
+    }
+  }
+}
+
 void RenderPlayArea(WIN *W, GAMESTATE *state) {
   CleanWin(W, 0);
 
@@ -586,6 +598,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     RenderPlayArea(playwin, state);
     CollectTokens(state);
     MoveEnemies(state);
+    CheckPlayerEnemyCollision(state);
 
     state->frames_elapsed++;
     state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
