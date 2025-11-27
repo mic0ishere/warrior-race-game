@@ -96,6 +96,7 @@ typedef struct {
   char debug_msg[MAX_DEBUG_LEN];
   int status;
   LEVEL *level;
+  POSITION player_pos;
 } GAMESTATE;
 
 WINDOW *InitScreen() {
@@ -297,6 +298,7 @@ GAMESTATE *InitGame() {
   state->frames_elapsed = 0;
   state->lives_left = state->level->lives;
   state->status = CONTINUE;
+  state->player_pos = state->level->start_pos;
 
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Game initialized.");
 
@@ -353,8 +355,79 @@ void ShowDebug(WIN *W, const char *msg) {
 #endif
 }
 
+void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
+                         int *screen_x, int *screen_y) {
+  int center_x = W->cols / 2;
+  int center_y = W->rows / 2;
+
+  *screen_x = center_x + (level_x - state->player_pos.x);
+  // This may seem counter-intuitive, but in ncurses Y increases downwards
+  // (inverse to a Cartesian plane)
+  *screen_y = center_y + (state->player_pos.y - level_y);
+}
+
+void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
+                     GAMESTATE *state) {
+  // Don't draw outside level boundaries
+  if (screen_x < -1 || screen_x > state->level->width || screen_y < -1 ||
+      screen_y > state->level->height) {
+    return;
+  }
+
+  int draw_x, draw_y;
+  LevelToScreenCoords(W, screen_x, screen_y, state, &draw_x, &draw_y);
+
+  if (draw_x >= 0 && draw_x < W->cols && draw_y >= 0 && draw_y < W->rows) {
+    mvwprintw(W->window, draw_y, draw_x, symbol);
+  }
+}
+
+void RenderPlayArea(WIN *W, GAMESTATE *state) {
+  CleanWin(W, 0);
+
+  // Draw player at center
+  mvwprintw(W->window, W->rows / 2, W->cols / 2, "@");
+
+  // Draw obstacles
+  for (int i = 0; i < state->level->num_obstacles; i++) {
+    OBSTACLE *obs = &state->level->obstacles[i];
+
+    for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
+      for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
+        SafePrintEntity(W, x, y, "#", state);
+      }
+    }
+  }
+
+  // Draw totems
+  for (int i = 0; i < state->level->num_totems; i++) {
+    TOTEM *totem = &state->level->totems[i];
+    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state);
+  }
+
+  // Draw enemies
+  for (int i = 0; i < state->level->num_enemies; i++) {
+    ENEMY *enemy = &state->level->enemies[i];
+    SafePrintEntity(W, enemy->pos1.x, enemy->pos1.y, "E", state);
+  }
+
+  // Draw level boundaries
+  for (int x = 0; x < state->level->width; x++) {
+    SafePrintEntity(W, x, -1, "-", state);
+    SafePrintEntity(W, x, state->level->height, "-", state);
+  }
+
+  for (int y = 0; y < state->level->height; y++) {
+    SafePrintEntity(W, -1, y, "|", state);
+    SafePrintEntity(W, state->level->width, y, "|", state);
+  }
+
+  wrefresh(W->window);
+}
+
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
+  POSITION wanted_pos;
 
   while (1) {
     ch = wgetch(statwin->window);
@@ -364,7 +437,28 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       break;
     }
 
-    // todo: update game state etc
+    wanted_pos.x = state->player_pos.x;
+    wanted_pos.y = state->player_pos.y;
+
+    if (ch == UP) {
+      wanted_pos.y++;
+    } else if (ch == DOWN) {
+      wanted_pos.y--;
+    } else if (ch == LEFT) {
+      wanted_pos.x--;
+    } else if (ch == RIGHT) {
+      wanted_pos.x++;
+    }
+
+    if (wanted_pos.x < state->level->width && wanted_pos.x >= 0 &&
+        wanted_pos.y < state->level->height && wanted_pos.y >= 0) {
+      state->player_pos = wanted_pos;
+    }
+
+    snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
+             state->player_pos.x, state->player_pos.y);
+
+    RenderPlayArea(playwin, state);
 
     state->frames_elapsed++;
     state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
