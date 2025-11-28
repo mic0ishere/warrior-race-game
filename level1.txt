@@ -24,4 +24,4 @@ WIN_SCORE=30
 # when direction is -1, enemy starts at pos2 and moves towards pos1
 (0,10) (10,10) 1 -1
 (20,20) (20,25) 2
-(0,15) (30,15) 5
+(0,12) (30,12) 5

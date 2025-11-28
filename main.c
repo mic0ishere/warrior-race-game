@@ -17,11 +17,15 @@
 #define FRAMES_PER_SECOND 20
 #define LEVEL_FILE "level1.txt"
 
-#define PLAY_COLOR 1     // Main window color
+#define PLAY_COLOR 1     // Main play window color
 #define STAT_COLOR 2     // Status window color
-#define DEBUG_COLOR 3    // Play area color
+#define DEBUG_COLOR 3    // Debug window color
 #define END_WIN_COLOR 4  // End game win color
 #define END_LOSE_COLOR 5 // End game lose color
+#define ENEMY_COLOR 6
+#define TOTEM_COLOR 7
+#define OBSTACLE_COLOR 8
+#define PLAYER_COLOR 9
 
 // Window dimensions and position
 #define BORDER 1    // Border width (in characters)
@@ -129,6 +133,10 @@ WINDOW *InitScreen() {
   init_pair(DEBUG_COLOR, COLOR_RED + 8, COLOR_BLACK);
   init_pair(END_WIN_COLOR, COLOR_WHITE, COLOR_GREEN);
   init_pair(END_LOSE_COLOR, COLOR_WHITE, COLOR_RED);
+  init_pair(ENEMY_COLOR, COLOR_WHITE + 8, COLOR_RED);
+  init_pair(TOTEM_COLOR, COLOR_BLACK, COLOR_YELLOW + 8);
+  init_pair(OBSTACLE_COLOR, COLOR_BLACK, COLOR_WHITE);
+  init_pair(PLAYER_COLOR, COLOR_BLACK, COLOR_WHITE);
 
   // Don't echo typed characters to screen
   noecho();
@@ -442,7 +450,7 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
 }
 
 void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
-                     GAMESTATE *state) {
+                     GAMESTATE *state, int color_pair) {
   // Don't draw outside level boundaries
   if (screen_x < -1 || screen_x > state->level->width || screen_y < -1 ||
       screen_y > state->level->height) {
@@ -453,6 +461,7 @@ void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
   LevelToScreenCoords(W, screen_x, screen_y, state, &draw_pos.x, &draw_pos.y);
 
   if (CheckWithinBounds(0, 0, W->cols - 1, W->rows - 1, draw_pos)) {
+    wattron(W->window, COLOR_PAIR(color_pair));
     mvwprintw(W->window, draw_pos.y, draw_pos.x, symbol);
   }
 }
@@ -526,13 +535,14 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     TOTEM *totem = &state->level->totems[i];
     if (totem->is_collected)
       continue;
-    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state);
+    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
   }
 
   // Draw enemies
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
-    SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state);
+    SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state,
+                    ENEMY_COLOR);
   }
 
   // Draw obstacles
@@ -541,24 +551,25 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
 
     for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
       for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
-        SafePrintEntity(W, x, y, "#", state);
+        SafePrintEntity(W, x, y, "#", state, OBSTACLE_COLOR);
       }
     }
   }
 
   // Draw level boundaries
   for (int x = 0; x < state->level->width; x++) {
-    SafePrintEntity(W, x, -1, "-", state);
-    SafePrintEntity(W, x, state->level->height, "-", state);
+    SafePrintEntity(W, x, -1, "-", state, OBSTACLE_COLOR);
+    SafePrintEntity(W, x, state->level->height, "-", state, OBSTACLE_COLOR);
   }
 
   for (int y = 0; y < state->level->height; y++) {
-    SafePrintEntity(W, -1, y, "|", state);
-    SafePrintEntity(W, state->level->width, y, "|", state);
+    SafePrintEntity(W, -1, y, "|", state, OBSTACLE_COLOR);
+    SafePrintEntity(W, state->level->width, y, "|", state, OBSTACLE_COLOR);
   }
 
   // Draw player
-  mvwprintw(W->window, W->rows / 2, W->cols / 2, "@");
+  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
+                  PLAYER_COLOR);
 
   wrefresh(W->window);
 }
