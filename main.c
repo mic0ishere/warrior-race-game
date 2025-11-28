@@ -361,18 +361,12 @@ GAMESTATE *InitGame() {
   return state;
 }
 
-void EndGame(WIN *W, char *msg, int color_pair, int is_main) {
+void EndGame(WIN *W, char *msg, int color_pair) {
   W->color = color_pair;
   CleanWin(W, BORDER);
 
   // Display centered goodbye message
   mvwprintw(W->window, W->rows / 2, (W->cols - strlen(msg)) / 2, msg);
-
-  char end_msg[] = "Thanks for playing!";
-  if (is_main) {
-    mvwprintw(W->window, W->rows / 2 + 1, (W->cols - strlen(end_msg)) / 2,
-              end_msg);
-  }
 
   wrefresh(W->window);
 }
@@ -661,32 +655,33 @@ int main(int argc, char *argv[]) {
 
   switch (state->status) {
   case GAME_TIMEOUT:
-    EndGame(playwin, "Time's up!", END_LOSE_COLOR, TRUE);
+    EndGame(playwin, "Time's up!", END_LOSE_COLOR);
     break;
 
   case OUT_OF_LIVES:
-    EndGame(playwin, "Out of lives!", END_LOSE_COLOR, TRUE);
+    EndGame(playwin, "Out of lives!", END_LOSE_COLOR);
     break;
 
   case USER_QUIT:
-    EndGame(playwin, "You quit the game.", END_LOSE_COLOR, TRUE);
+    EndGame(playwin, "You quit the game.", END_LOSE_COLOR);
     break;
 
   case CONTINUE:
-    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR, TRUE);
+    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
     break;
 
   case WIN_POINTS:
-    EndGame(playwin, "You collected enough points!", END_WIN_COLOR, TRUE);
-    break;
-
-  default:
-    EndGame(playwin, "You win!", END_WIN_COLOR, TRUE);
+    EndGame(playwin, "You collected enough points!", END_WIN_COLOR);
     break;
   }
 
-  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR,
-  // FALSE);
+  char end_msg[COLS];
+  snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
+  mvwprintw(playwin->window, playwin->rows / 2 + 1,
+            (playwin->cols - strlen(end_msg)) / 2, end_msg);
+  wrefresh(playwin->window);
+
+  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR);
   CleanWin(statwin, BORDER);
   sleep(2); // Wait 2 seconds before closing
 
