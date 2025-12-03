@@ -170,6 +170,10 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
              int bo, int is_debug) {
 
   WIN *W = (WIN *)malloc(sizeof(WIN));
+  
+  if (W == NULL) {
+    return NULL;
+  }
 
   // Store window properties
   W->x = x;
@@ -185,6 +189,8 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   if (is_debug) {
     return W;
   }
+#else
+  (void)is_debug; // Suppress unused parameter warning when DEBUG is defined
 #endif
 
   // Clear the window
@@ -222,7 +228,6 @@ void FreeLevel(LEVEL *level) {
     free(level->enemies);
     free(level);
   }
-  level = NULL;
 }
 
 ENEMY LoadEnemy(const char *line, int enemy_id) {
@@ -262,6 +267,10 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
 
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
+  
+  if (level == NULL) {
+    return NULL;
+  }
 
   FILE *file = fopen(filename, "r");
   if (file == NULL) {
@@ -277,7 +286,7 @@ LEVEL *LoadLevel(const char *filename) {
   level->num_enemies = 0;
 
   char line[MAX_LINE_LEN];
-  char *current_section;
+  char *current_section = NULL;
 
   while (fgets(line, MAX_LINE_LEN, file)) {
     line[strcspn(line, "\n")] = 0; // Remove trailing newline
@@ -286,11 +295,12 @@ LEVEL *LoadLevel(const char *filename) {
     }
 
     if (line[0] == '[' && line[strlen(line) - 1] == ']') {
+      free(current_section); // Free previous section name
       current_section = strdup(line); // Duplicate section name and store it
       continue;
     }
 
-    if (strcmp(current_section, "[CONFIG]") == 0) {
+    if (current_section != NULL && strcmp(current_section, "[CONFIG]") == 0) {
       sscanf(line, "TIME=%d", &level->time_limit);
       sscanf(line, "LIVES=%d", &level->lives);
       sscanf(line, "WIDTH=%d", &level->width);
@@ -298,7 +308,7 @@ LEVEL *LoadLevel(const char *filename) {
       sscanf(line, "START_X=%d", &level->start_pos.x);
       sscanf(line, "START_Y=%d", &level->start_pos.y);
       sscanf(line, "WIN_SCORE=%d", &level->win_score);
-    } else if (strcmp(current_section, "[TOTEMS]") == 0) {
+    } else if (current_section != NULL && strcmp(current_section, "[TOTEMS]") == 0) {
       TOTEM new_totem;
       new_totem.is_collected = FALSE;
       sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
@@ -307,11 +317,13 @@ LEVEL *LoadLevel(const char *filename) {
       level->totems = (TOTEM *)AddLevelEntity(level->totems, sizeof(TOTEM),
                                               &level->num_totems, &new_totem);
       if (level->totems == NULL) {
+        free(current_section);
         FreeLevel(level);
-        break;
+        fclose(file);
+        return NULL;
       }
 
-    } else if (strcmp(current_section, "[OBSTACLES]") == 0) {
+    } else if (current_section != NULL && strcmp(current_section, "[OBSTACLES]") == 0) {
       OBSTACLE new_obstacle;
       sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x,
              &new_obstacle.pos1.y, &new_obstacle.pos2.x, &new_obstacle.pos2.y);
@@ -320,26 +332,36 @@ LEVEL *LoadLevel(const char *filename) {
           (OBSTACLE *)AddLevelEntity(level->obstacles, sizeof(OBSTACLE),
                                      &level->num_obstacles, &new_obstacle);
       if (level->obstacles == NULL) {
+        free(current_section);
         FreeLevel(level);
-        break;
+        fclose(file);
+        return NULL;
       }
-    } else if (strcmp(current_section, "[ENEMIES]") == 0) {
+    } else if (current_section != NULL && strcmp(current_section, "[ENEMIES]") == 0) {
       ENEMY enemy = LoadEnemy(line, level->num_enemies);
       level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
                                                &level->num_enemies, &enemy);
       if (level->enemies == NULL) {
+        free(current_section);
         FreeLevel(level);
-        break;
+        fclose(file);
+        return NULL;
       }
     }
   }
 
+  free(current_section);
   fclose(file);
   return level;
 }
 
 GAMESTATE *InitGame() {
   GAMESTATE *state = (GAMESTATE *)malloc(sizeof(GAMESTATE));
+
+  if (state == NULL) {
+    fprintf(stderr, "Error allocating memory for game state\n");
+    exit(EXIT_FAILURE);
+  }
 
   state->level = LoadLevel(LEVEL_FILE);
 
@@ -366,7 +388,7 @@ void EndGame(WIN *W, char *msg, int color_pair) {
   CleanWin(W, BORDER);
 
   // Display centered goodbye message
-  mvwprintw(W->window, W->rows / 2, (W->cols - strlen(msg)) / 2, msg);
+  mvwprintw(W->window, W->rows / 2, (W->cols - strlen(msg)) / 2, "%s", msg);
 
   wrefresh(W->window);
 }
@@ -456,7 +478,7 @@ void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
 
   if (CheckWithinBounds(0, 0, W->cols - 1, W->rows - 1, draw_pos)) {
     wattron(W->window, COLOR_PAIR(color_pair));
-    mvwprintw(W->window, draw_pos.y, draw_pos.x, symbol);
+    mvwprintw(W->window, draw_pos.y, draw_pos.x, "%s", symbol);
   }
 }
 
@@ -633,7 +655,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
   // Initialize ncurses and color system
   WINDOW *screenwin = InitScreen();
 
@@ -678,7 +700,7 @@ int main(int argc, char *argv[]) {
   char end_msg[COLS];
   snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
   mvwprintw(playwin->window, playwin->rows / 2 + 1,
-            (playwin->cols - strlen(end_msg)) / 2, end_msg);
+            (playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
   wrefresh(playwin->window);
 
   // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR);
