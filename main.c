@@ -212,13 +212,13 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 
 // Generic function to dynamically add entities to level arrays
 // Used for totems, obstacles, and enemies during level loading
+// Returns NULL on failure - caller is responsible for freeing the original array
 void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
                      const void *new_entry) {
   void *resized_array = realloc(array, (*num_entries + 1) * entry_size);
 
   if (resized_array == NULL) {
-    free(array);
-    return NULL;
+    return NULL; // Caller handles cleanup
   }
 
   array = resized_array;
@@ -672,7 +672,11 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   }
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+  // Suppress unused parameter warnings - may be used for future enhancements
+  (void)argc;
+  (void)argv;
+  
   // Initialize ncurses and color system
   WINDOW *screenwin = InitScreen();
 
