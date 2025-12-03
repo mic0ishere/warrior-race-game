@@ -312,7 +312,12 @@ LEVEL *LoadLevel(const char *filename) {
       continue;
     }
 
-    if (current_section != NULL && strcmp(current_section, "[CONFIG]") == 0) {
+    // Skip processing if we haven't encountered a section yet
+    if (current_section == NULL) {
+      continue;
+    }
+
+    if (strcmp(current_section, "[CONFIG]") == 0) {
       sscanf(line, "TIME=%d", &level->time_limit);
       sscanf(line, "LIVES=%d", &level->lives);
       sscanf(line, "WIDTH=%d", &level->width);
@@ -320,7 +325,7 @@ LEVEL *LoadLevel(const char *filename) {
       sscanf(line, "START_X=%d", &level->start_pos.x);
       sscanf(line, "START_Y=%d", &level->start_pos.y);
       sscanf(line, "WIN_SCORE=%d", &level->win_score);
-    } else if (current_section != NULL && strcmp(current_section, "[TOTEMS]") == 0) {
+    } else if (strcmp(current_section, "[TOTEMS]") == 0) {
       TOTEM new_totem;
       new_totem.is_collected = FALSE;
       sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
@@ -335,7 +340,7 @@ LEVEL *LoadLevel(const char *filename) {
         return NULL;
       }
 
-    } else if (current_section != NULL && strcmp(current_section, "[OBSTACLES]") == 0) {
+    } else if (strcmp(current_section, "[OBSTACLES]") == 0) {
       OBSTACLE new_obstacle;
       sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x,
              &new_obstacle.pos1.y, &new_obstacle.pos2.x, &new_obstacle.pos2.y);
@@ -349,7 +354,7 @@ LEVEL *LoadLevel(const char *filename) {
         fclose(file);
         return NULL;
       }
-    } else if (current_section != NULL && strcmp(current_section, "[ENEMIES]") == 0) {
+    } else if (strcmp(current_section, "[ENEMIES]") == 0) {
       ENEMY enemy = LoadEnemy(line, level->num_enemies);
       level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
                                                &level->num_enemies, &enemy);
@@ -605,6 +610,60 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   wrefresh(W->window);
 }
 
+typedef struct {
+  WIN *playwin;
+  WIN *statwin;
+  WIN *debugwin;
+} WINDOWS;
+
+int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
+  windows->playwin = InitWin(screenwin, ROWS, COLS, OFFY, OFFX, 
+                             PLAY_COLOR, BORDER, FALSE);
+  if (windows->playwin == NULL) {
+    return 1;
+  }
+
+  windows->statwin = InitWin(screenwin, STAT_ROWS, COLS, ROWS + OFFY, OFFX,
+                             STAT_COLOR, BORDER, FALSE);
+  if (windows->statwin == NULL) {
+    delwin(windows->playwin->window);
+    free(windows->playwin);
+    return 2;
+  }
+
+  windows->debugwin = InitWin(screenwin, 3, COLS, ROWS + OFFY + STAT_ROWS + 1,
+                              OFFX, DEBUG_COLOR, BORDER, TRUE);
+  if (windows->debugwin == NULL) {
+    delwin(windows->playwin->window);
+    delwin(windows->statwin->window);
+    free(windows->playwin);
+    free(windows->statwin);
+    return 3;
+  }
+
+  return 0;
+}
+
+void CleanupWindows(WINDOW *screenwin, WINDOWS *windows) {
+  if (windows->playwin) {
+    delwin(windows->playwin->window);
+    free(windows->playwin);
+  }
+  if (windows->statwin) {
+    delwin(windows->statwin->window);
+    free(windows->statwin);
+  }
+  if (windows->debugwin) {
+    delwin(windows->debugwin->window);
+    free(windows->debugwin);
+  }
+  if (screenwin) {
+    delwin(screenwin);
+  }
+  endwin();
+  refresh();
+}
+
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   POSITION wanted_pos;
@@ -670,102 +729,51 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   }
 }
 
-int main(int argc, char *argv[]) {
-  // Suppress unused parameter warnings - may be used for future enhancements
-  (void)argc;
-  (void)argv;
-  
-  // Initialize ncurses and color system
+int main(void) {
   WINDOW *screenwin = InitScreen();
+  WINDOWS windows = {NULL, NULL, NULL};
 
-  // Play window: 20x80 cells, positioned at (2,5) with border
-  WIN *playwin =
-      InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
-  
-  if (playwin == NULL) {
+  int result = InitAllWindows(screenwin, &windows);
+  if (result != 0) {
     endwin();
-    fprintf(stderr, "Error: Failed to create play window\n");
-    return EXIT_FAILURE;
-  }
-
-  // Status window: 4x80 cells, positioned below play window
-  WIN *statwin = InitWin(screenwin, STAT_ROWS, COLS, ROWS + OFFY, OFFX,
-                         STAT_COLOR, BORDER, FALSE);
-  
-  if (statwin == NULL) {
-    delwin(playwin->window);
-    free(playwin);
-    endwin();
-    fprintf(stderr, "Error: Failed to create status window\n");
-    return EXIT_FAILURE;
-  }
-
-  // Debug window: 3x80 cells, positioned below status window
-  WIN *debugwin = InitWin(screenwin, 3, COLS, ROWS + OFFY + STAT_ROWS + 1, OFFX,
-                          DEBUG_COLOR, BORDER, TRUE);
-  
-  if (debugwin == NULL) {
-    delwin(playwin->window);
-    delwin(statwin->window);
-    free(playwin);
-    free(statwin);
-    endwin();
-    fprintf(stderr, "Error: Failed to create debug window\n");
+    fprintf(stderr, "Error: Failed to create window %d\n", result);
     return EXIT_FAILURE;
   }
 
   GAMESTATE *state = InitGame();
 
-  MainLoop(playwin, statwin, debugwin, state);
+  MainLoop(windows.playwin, windows.statwin, windows.debugwin, state);
 
   switch (state->status) {
   case GAME_TIMEOUT:
-    EndGame(playwin, "Time's up!", END_LOSE_COLOR);
+    EndGame(windows.playwin, "Time's up!", END_LOSE_COLOR);
     break;
-
   case OUT_OF_LIVES:
-    EndGame(playwin, "Out of lives!", END_LOSE_COLOR);
+    EndGame(windows.playwin, "Out of lives!", END_LOSE_COLOR);
     break;
-
   case USER_QUIT:
-    EndGame(playwin, "You quit the game.", END_LOSE_COLOR);
+    EndGame(windows.playwin, "You quit the game.", END_LOSE_COLOR);
     break;
-
   case CONTINUE:
-    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
+    EndGame(windows.playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
     break;
-
   case WIN_POINTS:
-    EndGame(playwin, "You collected enough points!", END_WIN_COLOR);
+    EndGame(windows.playwin, "You collected enough points!", END_WIN_COLOR);
     break;
   }
 
   char end_msg[COLS];
   snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
-  mvwprintw(playwin->window, playwin->rows / 2 + 1,
-            (playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
-  wrefresh(playwin->window);
+  mvwprintw(windows.playwin->window, windows.playwin->rows / 2 + 1,
+            (windows.playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
+  wrefresh(windows.playwin->window);
 
-  // EndGame(statwin, "Statistics will be saved to a file", STAT_COLOR);
-  CleanWin(statwin, BORDER);
-  sleep(2); // Wait 2 seconds before closing
+  CleanWin(windows.statwin, BORDER);
+  sleep(2);
 
-  // Delete ncurses windows
-  delwin(playwin->window);
-  delwin(statwin->window);
-  delwin(debugwin->window);
-  delwin(screenwin);
-
-  // Close ncurses
-  endwin();
-  refresh();
-
-  // Free allocated memory
   FreeLevel(state->level);
   free(state);
-  free(playwin);
-  free(statwin);
-  free(debugwin);
+  CleanupWindows(screenwin, &windows);
 
   return 0;
 }
