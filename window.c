@@ -185,20 +185,20 @@ void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
   *screen_y = center_y + (state->player_pos.y - level_y);
 }
 
-void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
+void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
                      GAMESTATE *state, int color_pair) {
-  if (screen_x < -1 || screen_x > state->level->width || screen_y < -1 ||
-      screen_y > state->level->height) {
+  if (level_x < -1 || level_x > state->level->width || level_y < -1 ||
+      level_y > state->level->height) {
     return;
   }
 
-  POSITION draw_pos;
-  LevelToScreenCoords(W, screen_x, screen_y, state, &draw_pos.x, &draw_pos.y);
+  POSITION screen_pos;
+  LevelToScreenCoords(W, level_x, level_y, state, &screen_pos.x, &screen_pos.y);
 
-  if (draw_pos.x >= 0 && draw_pos.x < W->cols && 
-      draw_pos.y >= 0 && draw_pos.y < W->rows) {
+  if (screen_pos.x >= 0 && screen_pos.x < W->cols && 
+      screen_pos.y >= 0 && screen_pos.y < W->rows) {
     wattron(W->window, COLOR_PAIR(color_pair));
-    mvwprintw(W->window, draw_pos.y, draw_pos.x, "%s", symbol);
+    mvwprintw(W->window, screen_pos.y, screen_pos.x, "%s", symbol);
   }
 }
 

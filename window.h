@@ -32,8 +32,8 @@ void ShowDebug(WIN *W, const char *msg);
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y);
 
-// Safely print entity on screen
-void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
+// Safely print entity on screen (takes level coordinates)
+void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
                      GAMESTATE *state, int color_pair);
 
 // Render the play area
