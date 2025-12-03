@@ -221,11 +221,10 @@ void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
     return NULL; // Caller handles cleanup
   }
 
-  array = resized_array;
-  memcpy((char *)array + (*num_entries) * entry_size, new_entry, entry_size);
+  memcpy((char *)resized_array + (*num_entries) * entry_size, new_entry, entry_size);
   (*num_entries)++;
 
-  return array;
+  return resized_array;
 }
 
 void FreeLevel(LEVEL *level) {
