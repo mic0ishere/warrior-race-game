@@ -118,6 +118,12 @@ typedef struct {
   POSITION player_pos;
 } GAMESTATE;
 
+typedef struct {
+  WIN *playwin;
+  WIN *statwin;
+  WIN *debugwin;
+} WINDOWS;
+
 WINDOW *InitScreen() {
   WINDOW *win = initscr();
 
@@ -609,12 +615,6 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
 
   wrefresh(W->window);
 }
-
-typedef struct {
-  WIN *playwin;
-  WIN *statwin;
-  WIN *debugwin;
-} WINDOWS;
 
 int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
   windows->playwin = InitWin(screenwin, ROWS, COLS, OFFY, OFFX, 
