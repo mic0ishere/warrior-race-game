@@ -160,7 +160,7 @@ void CleanWin(WIN *W, int bo) {
   // Fill window with spaces (clearing it)
   for (i = bo; i < W->rows - bo; i++)
     for (j = bo; j < W->cols - bo; j++)
-      mvwprintw(W->window, i, j, " ");
+      mvwprintw(W->window, i, j, "%s", " ");
 
   // Refresh to show changes
   wrefresh(W->window);
@@ -418,11 +418,10 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
   char pos_str[32];
   snprintf(pos_str, sizeof(pos_str), "(%d,%d)", state->player_pos.x,
            state->player_pos.y);
-  mvwprintw(W->window, 1, COLS - BORDER - strlen(pos_str), pos_str,
-            state->player_pos.x, state->player_pos.y);
+  mvwprintw(W->window, 1, COLS - BORDER - strlen(pos_str), "%s", pos_str);
 
   // Display controls
-  mvwprintw(W->window, 2, 2, "[WASD]=Move [Q]=Quit");
+  mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit");
 
   // Update display
   wrefresh(W->window);
@@ -437,7 +436,7 @@ void ShowDebug(WIN *W, const char *msg) {
 
   // Display debug message
   for (int i = strlen(msg) + 2; i < W->cols - 2; i++)
-    mvwprintw(W->window, 1, i, " ");
+    mvwprintw(W->window, 1, i, "%s", " ");
 
   mvwprintw(W->window, 1, 2, "%s", msg);
 
