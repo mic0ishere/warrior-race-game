@@ -184,6 +184,11 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 
   // Create ncurses subwindow
   W->window = subwin(parent, rows, cols, y, x);
+  
+  if (W->window == NULL) {
+    free(W);
+    return NULL;
+  }
 
 #ifndef DEBUG
   if (is_debug) {
@@ -205,6 +210,8 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   return W;
 }
 
+// Generic function to dynamically add entities to level arrays
+// Used for totems, obstacles, and enemies during level loading
 void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
                      const void *new_entry) {
   void *resized_array = realloc(array, (*num_entries + 1) * entry_size);
@@ -297,6 +304,12 @@ LEVEL *LoadLevel(const char *filename) {
     if (line[0] == '[' && line[strlen(line) - 1] == ']') {
       free(current_section); // Free previous section name
       current_section = strdup(line); // Duplicate section name and store it
+      if (current_section == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed for section name\n");
+        FreeLevel(level);
+        fclose(file);
+        return NULL;
+      }
       continue;
     }
 
@@ -433,6 +446,8 @@ void ShowDebug(WIN *W, const char *msg) {
 #endif
 }
 
+// Convert level coordinates to screen coordinates with camera centered on player
+// This implements scrolling by keeping the player at the center of the screen
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y) {
   int center_x = W->cols / 2;
@@ -482,7 +497,7 @@ void SafePrintEntity(WIN *W, int screen_x, int screen_y, const char *symbol,
   }
 }
 
-void CollectTokens(GAMESTATE *state) {
+void CollectTotems(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_totems; i++) {
     TOTEM *totem = &state->level->totems[i];
     if (!totem->is_collected && totem->pos.x == state->player_pos.x &&
@@ -506,6 +521,7 @@ POSITION NextEnemyPosition(ENEMY *enemy) {
   return next_pos;
 }
 
+// Update enemy positions based on their patrol patterns and speed
 void MoveEnemies(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
@@ -513,6 +529,7 @@ void MoveEnemies(GAMESTATE *state) {
       continue; // Skip enemies with unknown type
     }
 
+    // Control enemy movement speed: higher speed = more frequent moves
     if (state->frames_elapsed % (FRAMES_PER_SECOND / enemy->speed) != 0) {
       continue; // Move based on enemy speed
     }
@@ -623,7 +640,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
              state->player_pos.x, state->player_pos.y);
 
     RenderPlayArea(playwin, state);
-    CollectTokens(state);
+    CollectTotems(state);
     MoveEnemies(state);
     CheckPlayerEnemyCollision(state);
 
@@ -662,14 +679,38 @@ int main(void) {
   // Play window: 20x80 cells, positioned at (2,5) with border
   WIN *playwin =
       InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
+  
+  if (playwin == NULL) {
+    endwin();
+    fprintf(stderr, "Error: Failed to create play window\n");
+    return EXIT_FAILURE;
+  }
 
   // Status window: 4x80 cells, positioned below play window
   WIN *statwin = InitWin(screenwin, STAT_ROWS, COLS, ROWS + OFFY, OFFX,
                          STAT_COLOR, BORDER, FALSE);
+  
+  if (statwin == NULL) {
+    delwin(playwin->window);
+    free(playwin);
+    endwin();
+    fprintf(stderr, "Error: Failed to create status window\n");
+    return EXIT_FAILURE;
+  }
 
   // Debug window: 3x80 cells, positioned below status window
   WIN *debugwin = InitWin(screenwin, 3, COLS, ROWS + OFFY + STAT_ROWS + 1, OFFX,
                           DEBUG_COLOR, BORDER, TRUE);
+  
+  if (debugwin == NULL) {
+    delwin(playwin->window);
+    delwin(statwin->window);
+    free(playwin);
+    free(statwin);
+    endwin();
+    fprintf(stderr, "Error: Failed to create debug window\n");
+    return EXIT_FAILURE;
+  }
 
   GAMESTATE *state = InitGame();
 
