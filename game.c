@@ -116,6 +116,32 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
   }
 }
 
+void FinishGame(WIN *playwin, GAMESTATE *state) {
+  switch (state->status) {
+  case GAME_TIMEOUT:
+    EndGame(playwin, "Time's up!", END_LOSE_COLOR);
+    break;
+  case OUT_OF_LIVES:
+    EndGame(playwin, "Out of lives!", END_LOSE_COLOR);
+    break;
+  case USER_QUIT:
+    EndGame(playwin, "You quit the game.", END_LOSE_COLOR);
+    break;
+  case CONTINUE:
+    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
+    break;
+  case WIN_POINTS:
+    EndGame(playwin, "You collected enough points!", END_WIN_COLOR);
+    break;
+  }
+
+  char end_msg[COLS];
+  snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
+  mvwprintw(playwin->window, playwin->rows / 2 + 1,
+            (playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
+  wrefresh(playwin->window);
+}
+
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   POSITION wanted_pos;

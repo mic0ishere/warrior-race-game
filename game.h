@@ -28,4 +28,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state);
 // Main game loop
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state);
 
+// Finish the game and display final status
+void FinishGame(WIN *playwin, GAMESTATE *state);
+
 #endif // GAME_H

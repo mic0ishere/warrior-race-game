@@ -22,29 +22,7 @@ int main(void) {
 
   MainLoop(windows.playwin, windows.statwin, windows.debugwin, state);
 
-  switch (state->status) {
-  case GAME_TIMEOUT:
-    EndGame(windows.playwin, "Time's up!", END_LOSE_COLOR);
-    break;
-  case OUT_OF_LIVES:
-    EndGame(windows.playwin, "Out of lives!", END_LOSE_COLOR);
-    break;
-  case USER_QUIT:
-    EndGame(windows.playwin, "You quit the game.", END_LOSE_COLOR);
-    break;
-  case CONTINUE:
-    EndGame(windows.playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
-    break;
-  case WIN_POINTS:
-    EndGame(windows.playwin, "You collected enough points!", END_WIN_COLOR);
-    break;
-  }
-
-  char end_msg[COLS];
-  snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
-  mvwprintw(windows.playwin->window, windows.playwin->rows / 2 + 1,
-            (windows.playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
-  wrefresh(windows.playwin->window);
+  FinishGame(windows.playwin, state);
 
   CleanWin(windows.statwin, BORDER);
   sleep(2);
