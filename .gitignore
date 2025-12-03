@@ -5,3 +5,5 @@
 *.log
 .vscode/settings.json
 warrior_race
+warrior_race_new
+main_old.c
