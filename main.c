@@ -736,7 +736,8 @@ int main(void) {
   int result = InitAllWindows(screenwin, &windows);
   if (result != 0) {
     endwin();
-    fprintf(stderr, "Error: Failed to create window %d\n", result);
+    const char *window_names[] = {"", "play window", "status window", "debug window"};
+    fprintf(stderr, "Error: Failed to create %s\n", window_names[result]);
     return EXIT_FAILURE;
   }
 
