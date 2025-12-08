@@ -24,3 +24,9 @@
   - Asked it to refactor the game into modular architecture, which it did successfully.
 - Improved code quality, readability, and maintainability.
 - Learned how to properly work with pull requests on Github.
+
+### 08-12-2025
+- Asked ChatGPT on ideas to expand the game.
+  - It provided multiple ideas, some realistic gameplay changes (player power-ups, more enemy types, dynamic obstacles), possible technical improvements (ranking system, entity animations)
+  - Others were more complex or not possible and would require significant time to implement (procedural generation, inventory, audio effects)
+  - After few prompts for refining, a roadmap of features to implement was created
