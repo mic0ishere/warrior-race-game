@@ -1,7 +1,7 @@
 ## technical
-- level selector + create multiple levels
-- final score calculation + history ranking system
-- live loss screen
+- level selector -> create multiple levels, select at start
+- ranking system -> calculate final score, save to file, display top scores
+- menu system -> new game / view ranking / exit
 
 ## gameplay
 - power-ups
