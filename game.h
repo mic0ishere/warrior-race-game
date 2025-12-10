@@ -7,8 +7,7 @@
 GAMESTATE *InitGame(void);
 
 // Check if position is within bounds
-int CheckWithinBounds(int pos1_x, int pos1_y, int pos2_x, int pos2_y,
-                      POSITION point);
+int CheckWithinBounds(POSITION pos1, POSITION pos2, POSITION point);
 
 // Check collision with obstacles
 int CheckCollision(GAMESTATE *state, POSITION wanted_pos);

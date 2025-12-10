@@ -53,8 +53,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   }
 
   // Set starting position
-  if (CheckWithinBounds(enemy.pos1.x, enemy.pos1.y, enemy.pos2.x, enemy.pos2.y,
-                        start_pos)) {
+  if (CheckWithinBounds(enemy.pos1, enemy.pos2, start_pos)) {
     enemy.current_pos = start_pos;
   } else {
     enemy.current_pos = enemy.pos1;
@@ -68,7 +67,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   } else if (strcmp(type_str, "TELEPORTER") == 0) {
     int range_x = enemy.pos2.x - enemy.pos1.x + 1;
     int range_y = enemy.pos2.y - enemy.pos1.y + 1;
-    
+
     if (range_x > 0 && range_y > 0) {
       enemy.type = ENEMY_TELEPORTER;
     } else {

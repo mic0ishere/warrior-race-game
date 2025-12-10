@@ -41,17 +41,15 @@ GAMESTATE *InitGame(void) {
   return state;
 }
 
-int CheckWithinBounds(int pos1_x, int pos1_y, int pos2_x, int pos2_y,
-                      POSITION point) {
-  return (point.x >= pos1_x && point.x <= pos2_x && point.y >= pos1_y &&
-          point.y <= pos2_y);
+int CheckWithinBounds(POSITION pos1, POSITION pos2, POSITION point) {
+  return (point.x >= pos1.x && point.x <= pos2.x && point.y >= pos1.y &&
+          point.y <= pos2.y);
 }
 
 int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
   for (int i = 0; i < state->level->num_obstacles; i++) {
     OBSTACLE *obs = &state->level->obstacles[i];
-    if (CheckWithinBounds(obs->pos1.x, obs->pos1.y, obs->pos2.x, obs->pos2.y,
-                          wanted_pos)) {
+    if (CheckWithinBounds(obs->pos1, obs->pos2, wanted_pos)) {
       return FALSE;
     }
   }
@@ -76,8 +74,10 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
     }
   }
 
-  return CheckWithinBounds(0, 0, state->level->width - 1,
-                           state->level->height - 1, wanted_pos);
+  return CheckWithinBounds(
+      (POSITION){0, 0},
+      (POSITION){state->level->width - 1, state->level->height - 1},
+      wanted_pos);
 }
 
 void CollectTotems(GAMESTATE *state) {
@@ -144,8 +144,7 @@ void MoveEnemies(GAMESTATE *state) {
       wanted_pos = NextEnemyPosition(enemy);
 
       if (!CheckCollision(state, wanted_pos) ||
-          !CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
-                             enemy->pos2.y, wanted_pos)) {
+          !CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
         enemy->direction *= -1;
         enemy->current_pos = NextEnemyPosition(enemy);
         continue;
@@ -160,8 +159,7 @@ void MoveEnemies(GAMESTATE *state) {
       while (!can_move) {
         wanted_pos = NextEnemyPosition(enemy);
         can_move = CheckCollision(state, wanted_pos) &&
-                   CheckWithinBounds(enemy->pos1.x, enemy->pos1.y,
-                                     enemy->pos2.x, enemy->pos2.y, wanted_pos);
+                   CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos);
       }
 
       enemy->current_pos = wanted_pos;
@@ -182,8 +180,7 @@ void MoveEnemies(GAMESTATE *state) {
 
         // Only move if within bounds and no collision
         if (CheckCollision(state, wanted_pos) &&
-            CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
-                              enemy->pos2.y, wanted_pos)) {
+            CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
           enemy->current_pos = wanted_pos;
         }
       }
