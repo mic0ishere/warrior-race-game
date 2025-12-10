@@ -32,7 +32,8 @@ GAMESTATE *InitGame(void) {
   state->score = 0;
   state->time_elapsed = 0;
   state->frames_elapsed = 0;
-  state->lives_left = state->level->lives;
+  state->lifes_left = state->level->lifes;
+  state->life_loss = LIFE_STATUS_NONE;
   state->status = CONTINUE;
   state->player_pos = state->level->start_pos;
 
@@ -116,7 +117,7 @@ POSITION NextEnemyPosition(ENEMY *enemy) {
     next_pos.x += move_amount;
   } else if (enemy->type == ENEMY_PATROL_VERTICAL) {
     next_pos.y += move_amount;
-  } else if (enemy->type == ENEMY_RANDOM_WALKER) {
+  } else if (enemy->type == ENEMY_PATROL_RANDOM) {
     // Random movement: choose a random direction
     int rand_dir = rand() % 4;
     MoveInDirection(&next_pos, rand_dir, 1);
@@ -152,17 +153,13 @@ void MoveEnemies(GAMESTATE *state) {
 
       enemy->current_pos = wanted_pos;
 
-    } else if (enemy->type == ENEMY_RANDOM_WALKER) {
-      int can_move = FALSE;
+    } else if (enemy->type == ENEMY_PATROL_RANDOM) {
+      wanted_pos = NextEnemyPosition(enemy);
 
-      // Try moving until a valid position is found
-      while (!can_move) {
-        wanted_pos = NextEnemyPosition(enemy);
-        can_move = CheckCollision(state, wanted_pos) &&
-                   CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos);
+      if (CheckCollision(state, wanted_pos) &&
+          CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
+        enemy->current_pos = wanted_pos;
       }
-
-      enemy->current_pos = wanted_pos;
     } else if (enemy->type == ENEMY_CHASER) {
       // Calculate distance to player
       int dx = state->player_pos.x - enemy->current_pos.x;
@@ -214,7 +211,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
-      state->lives_left--;
+      state->lifes_left--;
       state->player_pos = state->level->start_pos;
       break;
     }
@@ -260,13 +257,13 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
     if (obs->type == AGGRESSIVE_SPIKE) {
       if (obs->pos.x == state->player_pos.x &&
           obs->pos.y == state->player_pos.y && obs->is_active) {
-        state->lives_left--;
+        state->lifes_left--;
         state->player_pos = state->level->start_pos;
         break;
       }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
       if (IsOnFirePath(obs, state->player_pos)) {
-        state->lives_left--;
+        state->lifes_left--;
         state->player_pos = state->level->start_pos;
         break;
       }
@@ -279,8 +276,8 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
   case GAME_TIMEOUT:
     EndGame(playwin, "Time's up!", END_LOSE_COLOR);
     break;
-  case OUT_OF_LIVES:
-    EndGame(playwin, "Out of lives!", END_LOSE_COLOR);
+  case OUT_OF_LIFES:
+    EndGame(playwin, "Out of lifes!", END_LOSE_COLOR);
     break;
   case USER_QUIT:
     EndGame(playwin, "You quit the game.", END_LOSE_COLOR);
@@ -350,8 +347,8 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       break;
     }
 
-    if (state->lives_left <= 0) {
-      state->status = OUT_OF_LIVES;
+    if (state->lifes_left <= 0) {
+      state->status = OUT_OF_LIFES;
       break;
     }
 

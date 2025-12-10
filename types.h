@@ -41,7 +41,7 @@
 // Game status codes
 #define CONTINUE 0
 #define GAME_TIMEOUT 1
-#define OUT_OF_LIVES 2
+#define OUT_OF_LIFES 2
 #define USER_QUIT 3
 #define WIN_POINTS 10
 
@@ -120,7 +120,7 @@ typedef struct {
 typedef enum {
   ENEMY_PATROL_HORIZONTAL,
   ENEMY_PATROL_VERTICAL,
-  ENEMY_RANDOM_WALKER,
+  ENEMY_PATROL_RANDOM,
   ENEMY_CHASER,
   ENEMY_TELEPORTER,
   ENEMY_TYPE_UNKNOWN
@@ -141,7 +141,7 @@ typedef struct {
 // Level structure
 typedef struct {
   int time_limit;
-  int lives;
+  int lifes;
   int win_score;
   int width, height;
   POSITION start_pos;
@@ -155,14 +155,24 @@ typedef struct {
   AGGRESSIVE_OBSTACLE *aggressive_obstacles;
 } LEVEL;
 
+typedef enum {
+  LIFE_STATUS_NONE,
+  LIFE_PATROL_KILL,
+  LIFE_CHASER_KILL,
+  LIFE_TELEPORTER_KILL,
+  LIFE_FIRE_JET,
+  LIFE_SPIKE_WALK
+} LIFE_LOST_STATUS;
+
 // Game state structure
 typedef struct {
   int score;
   int time_elapsed;
   int frames_elapsed;
-  int lives_left;
+  int lifes_left;
   char debug_msg[MAX_DEBUG_LEN];
   int status;
+  LIFE_LOST_STATUS life_loss;
   LEVEL *level;
   POSITION player_pos;
 } GAMESTATE;

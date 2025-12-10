@@ -61,7 +61,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
 
   // Determine enemy type
   if (strcmp(type_str, "RANDOM") == 0) {
-    enemy.type = ENEMY_RANDOM_WALKER;
+    enemy.type = ENEMY_PATROL_RANDOM;
   } else if (strcmp(type_str, "CHASER") == 0) {
     enemy.type = ENEMY_CHASER;
   } else if (strcmp(type_str, "TELEPORTER") == 0) {
@@ -184,7 +184,7 @@ LEVEL *LoadLevel(const char *filename) {
 
     if (strcmp(current_section, "[CONFIG]") == 0) {
       sscanf(line, "TIME=%d", &level->time_limit);
-      sscanf(line, "LIVES=%d", &level->lives);
+      sscanf(line, "LIFES=%d", &level->lifes);
       sscanf(line, "WIDTH=%d", &level->width);
       sscanf(line, "HEIGHT=%d", &level->height);
       sscanf(line, "START_X=%d", &level->start_pos.x);

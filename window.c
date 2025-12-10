@@ -146,10 +146,10 @@ void EndGame(WIN *W, char *msg, int color_pair) {
 void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
-  mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lives: %d/%d",
+  mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lifes: %d/%d",
             state->score, state->level->win_score,
-            state->level->time_limit - state->time_elapsed, state->lives_left,
-            state->level->lives);
+            state->level->time_limit - state->time_elapsed, state->lifes_left,
+            state->level->lifes);
 
   char pos_str[32];
   snprintf(pos_str, sizeof(pos_str), "(%d,%d)", state->player_pos.x,

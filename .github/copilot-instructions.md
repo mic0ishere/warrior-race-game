@@ -21,9 +21,9 @@ A terminal-based roguelike game written in C using ncurses library. Players navi
 ### Key Types (in `types.h`)
 - `POSITION`: `{x, y}` coordinates in level space
 - `ENEMY`: Has `pos1`, `pos2` (patrol endpoints), `current_pos`, `speed`, `direction`, `type` (HORIZONTAL/VERTICAL)
-- `GAMESTATE`: Central game state - player position, score, lives, time, level reference
+- `GAMESTATE`: Central game state - player position, score, lifes, time, level reference
 - `WIN`: ncurses window wrapper with position and color info
-- `LEVEL`: All level data - config (time, lives, win_score), arrays of totems/obstacles/enemies
+- `LEVEL`: All level data - config (time, lifes, win_score), arrays of totems/obstacles/enemies
 
 ## Build & Development
 
