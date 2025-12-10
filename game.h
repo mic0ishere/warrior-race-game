@@ -16,6 +16,9 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos);
 // Collect totems at player position
 void CollectTotems(GAMESTATE *state);
 
+// Move position in specified direction
+void MoveInDirection(POSITION *pos, int direction, int amount);
+
 // Get next enemy position
 POSITION NextEnemyPosition(ENEMY *enemy);
 
@@ -29,7 +32,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state);
 void UpdateAggressiveObstacles(GAMESTATE *state);
 
 // Check if player is on fire jet's fire path
-int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos, int frames_elapsed);
+int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos);
 
 // Main game loop
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state);

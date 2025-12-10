@@ -1,4 +1,5 @@
 #include "window.h"
+#include "game.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +53,7 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
              int bo, int is_debug) {
 
   WIN *W = (WIN *)malloc(sizeof(WIN));
-  
+
   if (W == NULL) {
     return NULL;
   }
@@ -64,7 +65,7 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   W->color = color;
 
   W->window = subwin(parent, rows, cols, y, x);
-  
+
   if (W->window == NULL) {
     free(W);
     return NULL;
@@ -86,8 +87,8 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 }
 
 int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
-  windows->playwin = InitWin(screenwin, ROWS, COLS, OFFY, OFFX, 
-                             PLAY_COLOR, BORDER, FALSE);
+  windows->playwin =
+      InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
   if (windows->playwin == NULL) {
     return 1;
   }
@@ -197,8 +198,8 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
   POSITION screen_pos;
   LevelToScreenCoords(W, level_x, level_y, state, &screen_pos.x, &screen_pos.y);
 
-  if (screen_pos.x >= 0 && screen_pos.x < W->cols && 
-      screen_pos.y >= 0 && screen_pos.y < W->rows) {
+  if (screen_pos.x >= 0 && screen_pos.x < W->cols && screen_pos.y >= 0 &&
+      screen_pos.y < W->rows) {
     wattron(W->window, COLOR_PAIR(color_pair));
     mvwprintw(W->window, screen_pos.y, screen_pos.x, "%s", symbol);
   }
@@ -233,34 +234,23 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   // Render aggressive obstacles
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
-    
+
     if (obs->type == AGGRESSIVE_SPIKE) {
-      SafePrintEntity(W, obs->pos.x, obs->pos.y, "^", state, SPIKE_COLOR);
+      const char *spike_symbols[] = {"^", "v", "<", ">"};
+
+      if (obs->is_active) {
+        SafePrintEntity(W, obs->pos.x, obs->pos.y,
+                        spike_symbols[obs->direction % 4], state, SPIKE_COLOR);
+      }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
       SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
-      
+
       // Render fire if active
       if (obs->is_active) {
         for (int j = 1; j <= obs->fire_length; j++) {
-          int fire_x = obs->pos.x;
-          int fire_y = obs->pos.y;
-          
-          switch (obs->fire_direction) {
-            case FIREJET_UP:
-              fire_y -= j;  // Move up (decreasing y in level space)
-              break;
-            case FIREJET_DOWN:
-              fire_y += j;  // Move down (increasing y in level space)
-              break;
-            case FIREJET_LEFT:
-              fire_x -= j;
-              break;
-            case FIREJET_RIGHT:
-              fire_x += j;
-              break;
-          }
-          
-          SafePrintEntity(W, fire_x, fire_y, "*", state, FIREJET_COLOR);
+          POSITION fire_pos = obs->pos;
+          MoveInDirection(&fire_pos, obs->direction, j);
+          SafePrintEntity(W, fire_pos.x, fire_pos.y, "*", state, FIREJET_COLOR);
         }
       }
     }

@@ -1,12 +1,12 @@
 #include "game.h"
 #include "level.h"
 #include "window.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <math.h>
+#include <unistd.h>
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
@@ -56,6 +56,26 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
     }
   }
 
+  POSITION previous_pos = state->player_pos;
+  AGGRESSIVE_OBSTACLE_DIRECTION player_dir;
+  if (wanted_pos.x > previous_pos.x) {
+    player_dir = OBSTACLE_RIGHT;
+  } else if (wanted_pos.x < previous_pos.x) {
+    player_dir = OBSTACLE_LEFT;
+  } else if (wanted_pos.y < previous_pos.y) {
+    player_dir = OBSTACLE_DOWN;
+  } else {
+    player_dir = OBSTACLE_UP;
+  }
+
+  for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
+    AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
+    if (obs->type == AGGRESSIVE_SPIKE && obs->pos.x == wanted_pos.x &&
+        obs->pos.y == wanted_pos.y && obs->direction == player_dir) {
+      return FALSE;
+    }
+  }
+
   return CheckWithinBounds(0, 0, state->level->width - 1,
                            state->level->height - 1, wanted_pos);
 }
@@ -71,6 +91,23 @@ void CollectTotems(GAMESTATE *state) {
   }
 }
 
+void MoveInDirection(POSITION *pos, int direction, int amount) {
+  switch (direction) {
+  case OBSTACLE_DOWN:
+    pos->y -= amount;
+    break;
+  case OBSTACLE_UP:
+    pos->y += amount;
+    break;
+  case OBSTACLE_LEFT:
+    pos->x -= amount;
+    break;
+  case OBSTACLE_RIGHT:
+    pos->x += amount;
+    break;
+  }
+}
+
 POSITION NextEnemyPosition(ENEMY *enemy) {
   POSITION next_pos = enemy->current_pos;
   int move_amount = enemy->direction;
@@ -82,18 +119,7 @@ POSITION NextEnemyPosition(ENEMY *enemy) {
   } else if (enemy->type == ENEMY_RANDOM_WALKER) {
     // Random movement: choose a random direction
     int rand_dir = rand() % 4;
-    switch (rand_dir) {
-      case 0: next_pos.x++; break;  // Right
-      case 1: next_pos.x--; break;  // Left
-      case 2: next_pos.y++; break;  // Up
-      case 3: next_pos.y--; break;  // Down
-    }
-  } else if (enemy->type == ENEMY_CHASER) {
-    // Chaser movement is handled in MoveEnemies with player position
-    // This function just returns current position
-  } else if (enemy->type == ENEMY_TELEPORTER) {
-    // Teleporter movement is handled in MoveEnemies
-    // This function just returns current position
+    MoveInDirection(&next_pos, rand_dir, 1);
   }
 
   return next_pos;
@@ -111,11 +137,12 @@ void MoveEnemies(GAMESTATE *state) {
     }
 
     POSITION wanted_pos = enemy->current_pos;
-    
+
     // Handle different enemy types
-    if (enemy->type == ENEMY_PATROL_HORIZONTAL || enemy->type == ENEMY_PATROL_VERTICAL) {
+    if (enemy->type == ENEMY_PATROL_HORIZONTAL ||
+        enemy->type == ENEMY_PATROL_VERTICAL) {
       wanted_pos = NextEnemyPosition(enemy);
-      
+
       if (!CheckCollision(state, wanted_pos) ||
           !CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
                              enemy->pos2.y, wanted_pos)) {
@@ -123,36 +150,36 @@ void MoveEnemies(GAMESTATE *state) {
         enemy->current_pos = NextEnemyPosition(enemy);
         continue;
       }
-      
+
       enemy->current_pos = wanted_pos;
-      
+
     } else if (enemy->type == ENEMY_RANDOM_WALKER) {
-      wanted_pos = NextEnemyPosition(enemy);
-      
-      // Keep random walker within its bounding box
-      if (CheckCollision(state, wanted_pos) &&
-          CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
-                            enemy->pos2.y, wanted_pos)) {
-        enemy->current_pos = wanted_pos;
+      int can_move = FALSE;
+
+      // Try moving until a valid position is found
+      while (!can_move) {
+        wanted_pos = NextEnemyPosition(enemy);
+        can_move = CheckCollision(state, wanted_pos) &&
+                   CheckWithinBounds(enemy->pos1.x, enemy->pos1.y,
+                                     enemy->pos2.x, enemy->pos2.y, wanted_pos);
       }
-      
+
+      enemy->current_pos = wanted_pos;
     } else if (enemy->type == ENEMY_CHASER) {
       // Calculate distance to player
       int dx = state->player_pos.x - enemy->current_pos.x;
       int dy = state->player_pos.y - enemy->current_pos.y;
       int distance = (int)sqrt(dx * dx + dy * dy);
-      
-      // Only chase if player is within chase radius and chaser's area
-      if (distance <= enemy->chase_radius &&
-          CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
-                            enemy->pos2.y, state->player_pos)) {
+
+      // Only chase if player is within chase radius ("can be seen")
+      if (distance <= enemy->chase_radius) {
         // Move towards player (simple AI: one step at a time)
         if (abs(dx) > abs(dy)) {
           wanted_pos.x += (dx > 0) ? 1 : -1;
         } else {
           wanted_pos.y += (dy > 0) ? 1 : -1;
         }
-        
+
         // Only move if within bounds and no collision
         if (CheckCollision(state, wanted_pos) &&
             CheckWithinBounds(enemy->pos1.x, enemy->pos1.y, enemy->pos2.x,
@@ -160,23 +187,25 @@ void MoveEnemies(GAMESTATE *state) {
           enemy->current_pos = wanted_pos;
         }
       }
-      
+
     } else if (enemy->type == ENEMY_TELEPORTER) {
       // Teleport every 3 seconds
-      if (state->frames_elapsed - enemy->last_teleport_frame >= TELEPORTER_INTERVAL_FRAMES) {
-        // Random position within bounding box
+      if (state->frames_elapsed - enemy->last_teleport_frame >=
+          TELEPORTER_INTERVAL_FRAMES) {
         int range_x = enemy->pos2.x - enemy->pos1.x + 1;
         int range_y = enemy->pos2.y - enemy->pos1.y + 1;
-        
-        // Safety check: ensure positive range
-        if (range_x > 0 && range_y > 0) {
-          wanted_pos.x = enemy->pos1.x + (rand() % range_x);
-          wanted_pos.y = enemy->pos1.y + (rand() % range_y);
-          
-          if (CheckCollision(state, wanted_pos)) {
-            enemy->current_pos = wanted_pos;
-            enemy->last_teleport_frame = state->frames_elapsed;
-          }
+
+        // Random position within bounding box
+        wanted_pos.x = enemy->pos1.x + (rand() % range_x);
+        wanted_pos.y = enemy->pos1.y + (rand() % range_y);
+
+        if (CheckCollision(state, wanted_pos)) {
+          enemy->current_pos = wanted_pos;
+          enemy->last_teleport_frame = state->frames_elapsed;
+        } else {
+          fprintf(stderr,
+                  "Warning: Teleporter enemy %d attempted invalid teleport.\n",
+                  i);
         }
       }
     }
@@ -195,68 +224,51 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
   }
 }
 
-int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos, int frames_elapsed) {
-  (void)frames_elapsed;  // Unused parameter
-  
+int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos) {
   if (!firejet->is_active) {
     return FALSE;
   }
-  
+
   // Check if player is on the fire path
   for (int i = 1; i <= firejet->fire_length; i++) {
-    int fire_x = firejet->pos.x;
-    int fire_y = firejet->pos.y;
-    
-    switch (firejet->fire_direction) {
-      case FIREJET_UP:
-        fire_y -= i;  // Move up (decreasing y in level space)
-        break;
-      case FIREJET_DOWN:
-        fire_y += i;  // Move down (increasing y in level space)
-        break;
-      case FIREJET_LEFT:
-        fire_x -= i;
-        break;
-      case FIREJET_RIGHT:
-        fire_x += i;
-        break;
-    }
-    
-    if (fire_x == player_pos.x && fire_y == player_pos.y) {
+    POSITION fire_pos = firejet->pos;
+    MoveInDirection(&fire_pos, firejet->direction, i);
+
+    if (fire_pos.x == player_pos.x && fire_pos.y == player_pos.y) {
       return TRUE;
     }
   }
-  
+
   return FALSE;
 }
 
 void UpdateAggressiveObstacles(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
-    
+
+    int frames_since_last_active =
+        state->frames_elapsed - obs->last_active_frame;
+
+    // Fire for 1 second, then wait for interval
+    if (frames_since_last_active >= obs->active_interval) {
+      obs->is_active = TRUE;
+
+      if (frames_since_last_active >=
+          obs->active_interval + OBSTACLE_ACTIVE_DURATION_FRAMES) {
+        obs->is_active = FALSE;
+        obs->last_active_frame = state->frames_elapsed;
+      }
+    }
+
     if (obs->type == AGGRESSIVE_SPIKE) {
-      // Spikes are always active - check collision
-      if (obs->pos.x == state->player_pos.x && obs->pos.y == state->player_pos.y) {
+      if (obs->pos.x == state->player_pos.x &&
+          obs->pos.y == state->player_pos.y && obs->is_active) {
         state->lives_left--;
         state->player_pos = state->level->start_pos;
         break;
       }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
-      // Update fire jet state
-      int frames_since_fire = state->frames_elapsed - obs->last_fire_frame;
-      
-      // Fire for 1 second, then wait for interval
-      if (frames_since_fire >= obs->fire_interval) {
-        obs->is_active = 1;
-        
-        if (frames_since_fire >= obs->fire_interval + FIREJET_ACTIVE_DURATION_FRAMES) {
-          obs->is_active = 0;
-          obs->last_fire_frame = state->frames_elapsed;
-        }
-      }
-      
-      // Check if player is hit by fire
-      if (IsOnFirePath(obs, state->player_pos, state->frames_elapsed)) {
+      if (IsOnFirePath(obs, state->player_pos)) {
         state->lives_left--;
         state->player_pos = state->level->start_pos;
         break;

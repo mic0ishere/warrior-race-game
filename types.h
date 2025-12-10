@@ -14,8 +14,8 @@
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define LEVEL_FILE "level1.txt"
-#define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND)  // 3 seconds
-#define FIREJET_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND     // 1 second
+#define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds
+#define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
 
 // Color pair identifiers
 #define PLAY_COLOR 1
@@ -93,26 +93,27 @@ typedef struct {
 // Aggressive obstacle type enumeration
 typedef enum {
   AGGRESSIVE_SPIKE,
-  AGGRESSIVE_FIREJET
+  AGGRESSIVE_FIREJET,
+  AGGRESSIVE_TYPE_UNKNOWN
 } AGGRESSIVE_OBSTACLE_TYPE;
 
 // Fire jet direction enumeration
 typedef enum {
-  FIREJET_UP,
-  FIREJET_DOWN,
-  FIREJET_LEFT,
-  FIREJET_RIGHT
-} FIREJET_DIRECTION;
+  OBSTACLE_UP,
+  OBSTACLE_DOWN,
+  OBSTACLE_LEFT,
+  OBSTACLE_RIGHT
+} AGGRESSIVE_OBSTACLE_DIRECTION;
 
 // Aggressive obstacle structure
 typedef struct {
   POSITION pos;
   AGGRESSIVE_OBSTACLE_TYPE type;
-  FIREJET_DIRECTION fire_direction;  // For fire jets
-  int fire_length;                    // For fire jets - how far fire travels
-  int fire_interval;                  // For fire jets - frames between emissions
-  int last_fire_frame;                // For fire jets - when last fired
-  int is_active;                      // For fire jets - whether currently emitting
+  AGGRESSIVE_OBSTACLE_DIRECTION direction;
+  int fire_length;     // For fire jets - how far fire travels
+  int active_interval; // Frames between activations
+  int last_active_frame;
+  int is_active;
 } AGGRESSIVE_OBSTACLE;
 
 // Enemy type enumeration
@@ -133,8 +134,8 @@ typedef struct {
   ENEMY_TYPE type;
   int direction;
   int speed;
-  int last_teleport_frame;  // For teleporter enemies
-  int chase_radius;          // For chaser enemies - chase range
+  int last_teleport_frame; // For teleporter enemies
+  int chase_radius;        // For chaser enemies - chase range
 } ENEMY;
 
 // Level structure
