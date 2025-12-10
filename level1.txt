@@ -20,8 +20,30 @@ WIN_SCORE=30
 (10,15) (30,16)
 
 [ENEMIES]
-# (x1,y1) (x2,y2) speed direction[-1,1]
+# Old format (backward compatible): (x1,y1) (x2,y2) speed direction[-1,1]
 # when direction is -1, enemy starts at pos2 and moves towards pos1
 (0,10) (10,10) 1 -1
 (20,20) (20,25) 2
 (0,12) (30,12) 5
+
+# New enemy types:
+# RANDOM (x1,y1) (x2,y2) speed direction [chase_radius]
+# CHASER (x1,y1) (x2,y2) speed direction chase_radius
+# TELEPORTER (x1,y1) (x2,y2) speed direction
+RANDOM (15,0) (20,5) 2 1
+CHASER (20,0) (29,10) 3 1 8
+TELEPORTER (0,20) (10,29) 1 1
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y)
+SPIKE (12,5)
+SPIKE (13,6)
+SPIKE (14,7)
+
+# FIREJET (x,y) direction length interval
+# direction: UP, DOWN, LEFT, RIGHT
+# length: how far fire travels (default 5)
+# interval: frames between emissions (default 60 = 3 seconds)
+FIREJET (5,10) RIGHT 7 40
+FIREJET (25,15) LEFT 6 50
+FIREJET (15,25) UP 5 60

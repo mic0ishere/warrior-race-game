@@ -25,6 +25,12 @@ void MoveEnemies(GAMESTATE *state);
 // Check for player-enemy collision
 void CheckPlayerEnemyCollision(GAMESTATE *state);
 
+// Update fire jets and check player collision with aggressive obstacles
+void UpdateAggressiveObstacles(GAMESTATE *state);
+
+// Check if player is on fire jet's fire path
+int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos, int frames_elapsed);
+
 // Main game loop
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state);
 

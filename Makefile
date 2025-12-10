@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic -Wformat-security
-LDFLAGS = -lncurses
+LDFLAGS = -lncurses -lm
 
 # Target executable
 TARGET = warrior_race

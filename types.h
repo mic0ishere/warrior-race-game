@@ -25,6 +25,8 @@
 #define TOTEM_COLOR 7
 #define OBSTACLE_COLOR 8
 #define PLAYER_COLOR 9
+#define SPIKE_COLOR 10
+#define FIREJET_COLOR 11
 
 // Window dimensions and position
 #define BORDER 1
@@ -86,10 +88,38 @@ typedef struct {
   POSITION pos2;
 } OBSTACLE;
 
+// Aggressive obstacle type enumeration
+typedef enum {
+  AGGRESSIVE_SPIKE,
+  AGGRESSIVE_FIREJET
+} AGGRESSIVE_OBSTACLE_TYPE;
+
+// Fire jet direction enumeration
+typedef enum {
+  FIREJET_UP,
+  FIREJET_DOWN,
+  FIREJET_LEFT,
+  FIREJET_RIGHT
+} FIREJET_DIRECTION;
+
+// Aggressive obstacle structure
+typedef struct {
+  POSITION pos;
+  AGGRESSIVE_OBSTACLE_TYPE type;
+  FIREJET_DIRECTION fire_direction;  // For fire jets
+  int fire_length;                    // For fire jets - how far fire travels
+  int fire_interval;                  // For fire jets - frames between emissions
+  int last_fire_frame;                // For fire jets - when last fired
+  int is_active;                      // For fire jets - whether currently emitting
+} AGGRESSIVE_OBSTACLE;
+
 // Enemy type enumeration
 typedef enum {
   ENEMY_PATROL_HORIZONTAL,
   ENEMY_PATROL_VERTICAL,
+  ENEMY_RANDOM_WALKER,
+  ENEMY_CHASER,
+  ENEMY_TELEPORTER,
   ENEMY_TYPE_UNKNOWN
 } ENEMY_TYPE;
 
@@ -101,6 +131,8 @@ typedef struct {
   ENEMY_TYPE type;
   int direction;
   int speed;
+  int last_teleport_frame;  // For teleporter enemies
+  int chase_radius;          // For chaser enemies - chase range
 } ENEMY;
 
 // Level structure
@@ -116,6 +148,8 @@ typedef struct {
   OBSTACLE *obstacles;
   int num_enemies;
   ENEMY *enemies;
+  int num_aggressive_obstacles;
+  AGGRESSIVE_OBSTACLE *aggressive_obstacles;
 } LEVEL;
 
 // Game state structure

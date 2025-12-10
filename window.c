@@ -24,6 +24,8 @@ WINDOW *InitScreen(void) {
   init_pair(TOTEM_COLOR, COLOR_BLACK, COLOR_YELLOW + 8);
   init_pair(OBSTACLE_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(PLAYER_COLOR, COLOR_BLACK, COLOR_WHITE);
+  init_pair(SPIKE_COLOR, COLOR_WHITE + 8, COLOR_MAGENTA);
+  init_pair(FIREJET_COLOR, COLOR_WHITE + 8, COLOR_RED + 8);
 
   noecho();
   curs_set(0);
@@ -224,6 +226,42 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
       for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
         SafePrintEntity(W, x, y, "#", state, OBSTACLE_COLOR);
+      }
+    }
+  }
+
+  // Render aggressive obstacles
+  for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
+    AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
+    
+    if (obs->type == AGGRESSIVE_SPIKE) {
+      SafePrintEntity(W, obs->pos.x, obs->pos.y, "^", state, SPIKE_COLOR);
+    } else if (obs->type == AGGRESSIVE_FIREJET) {
+      SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
+      
+      // Render fire if active
+      if (obs->is_active) {
+        for (int j = 1; j <= obs->fire_length; j++) {
+          int fire_x = obs->pos.x;
+          int fire_y = obs->pos.y;
+          
+          switch (obs->fire_direction) {
+            case FIREJET_UP:
+              fire_y += j;
+              break;
+            case FIREJET_DOWN:
+              fire_y -= j;
+              break;
+            case FIREJET_LEFT:
+              fire_x -= j;
+              break;
+            case FIREJET_RIGHT:
+              fire_x += j;
+              break;
+          }
+          
+          SafePrintEntity(W, fire_x, fire_y, "*", state, FIREJET_COLOR);
+        }
       }
     }
   }
