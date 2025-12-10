@@ -156,7 +156,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
            state->player_pos.y);
   mvwprintw(W->window, 1, COLS - BORDER - strlen(pos_str), "%s", pos_str);
 
-  mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit");
+  mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit [P]=Pause");
 
   wrefresh(W->window);
 }
@@ -208,6 +208,13 @@ void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
   mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
   mvwprintw(W->window, W->rows / 2 + 3, (W->cols - strlen(reason_msg)) / 2,
             "%s", reason_msg);
+  wattron(W->window, COLOR_PAIR(W->color));
+  wrefresh(W->window);
+}
+
+void ShowAlert(WIN *W, const char *msg) {
+  wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
+  mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
   wattron(W->window, COLOR_PAIR(W->color));
   wrefresh(W->window);
 }

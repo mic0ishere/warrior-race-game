@@ -304,6 +304,7 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
 
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
+  int is_paused = FALSE;
   POSITION wanted_pos;
 
   while (1) {
@@ -312,6 +313,18 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     if (ch == QUIT) {
       state->status = USER_QUIT;
       break;
+    }
+
+    if (ch == PAUSE) {
+      is_paused = !is_paused;
+      continue;
+    }
+
+    if (is_paused) {
+      ShowAlert(playwin, "Game is paused. Press 'P' to resume.");
+
+      usleep(FRAME_TIME_MS * 1000);
+      continue;
     }
 
     wanted_pos.x = state->player_pos.x;
