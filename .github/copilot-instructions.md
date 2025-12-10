@@ -86,11 +86,7 @@ Use debug window: Call `ShowDebug(windows.debugwin, "message")` to display on sc
 Alternatively output to `stderr` for off-screen logging.
 
 ## Roadmap Features (Planned)
-- Power-ups (shield, speed boost, double points, extra life)
-- New enemy types (random walkers, chasers, patrollers, teleporters)
-- Obstacles (spikes, fire jets, teleport pads, sticky floors, tall grass, one-way doors)
-- Level selector and multiple levels
-- Ranking system and final score calculation
+Check `roadmap.md` for detailed planned features
 
 ## Collaboration Notes
 Project has successful experience with AI agents via PR workflow. Provide:

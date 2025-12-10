@@ -1,7 +1,7 @@
 ## technical
 - level selector + create multiple levels
-- final score calculation
-- ranking system
+- final score calculation + history ranking system
+- live loss screen
 
 ## gameplay
 - power-ups
@@ -10,13 +10,13 @@
     - double points -> temporary double scoring for totems collected
     - extra life -> additional life
 
-- new enemy types
+- new enemy types ✅
     - random walkers -> move randomly around the level
     - chasers -> actively pursue the player in a set area
     - patrollers -> follow a fixed path
     - teleporters -> randomly teleport by few blocks every few seconds
 
-- aggressive obstacles
+- aggressive obstacles ✅
     - spikes -> harm player on contact
     - fire jets -> emit fire in straight lines at intervals
 
