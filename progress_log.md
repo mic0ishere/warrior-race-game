@@ -15,14 +15,16 @@
 # Phase 2
 
 ### 03-12-2025
-
 - Used Github Copilot (Agent mode) to help with security vulnerabilities, memory leaks and code optimization.
   - It required instructions as to where is the main file is located, what is the project outline and at which stage the project is.
   - Reverted the decision to suppress unused parameter warnings, and instead chose to refactor the code to eliminate unused parameters.
+
 - Collaborated with it using a pull request workflow.
   - Manually asked to refactor few functions and type definitions in order to improve readability.
   - Asked it to refactor the game into modular architecture, which it did successfully.
+
 - Improved code quality, readability, and maintainability.
+
 - Learned how to properly work with pull requests on Github.
 
 ### 08-12-2025
@@ -30,3 +32,19 @@
   - It provided multiple ideas, some realistic gameplay changes (player power-ups, more enemy types, dynamic obstacles), possible technical improvements (ranking system, entity animations)
   - Others were more complex or not possible and would require significant time to implement (procedural generation, inventory, audio effects)
   - After few prompts for refining, a roadmap of features to implement was created
+
+### 10-12-2025
+- Using the roadmap created with ChatGPT, started implementing new gameplay features.
+
+- Implemented new enemy types (random walkers, chasers, teleporters) and aggressive obstacles (spikes and fire jets) by using Github Copilot agent (Claude Sonnet 4.5)
+  - It excelled at generating the enemy movement logic based on the descriptions provided - the game was working flawlessly after the first implementation.
+  - Some of the code required minor adjustments for quality purposes, mostly related to legacy config parameters and integration with existing code
+  - I have manually refactored some of the code to improve readability and maintainability
+
+- Added a proper life loss handling with an alert message.
+  - Copilot inline suggestions helped with implementation, providing nice messages
+  - Suggested delay mechanism was too short and needed to be adjusted manually
+
+- Implemented pause functionality in the game, without AI assistance.
+
+- IDEA: After heavy AI-assisted development, a proper code review would be beneficial to ensure code quality and maintainability. I would suggest asking Copilot to identify potential issues before a thorough manual review.
