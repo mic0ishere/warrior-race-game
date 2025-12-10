@@ -33,4 +33,7 @@ clean:
 # Rebuild everything
 rebuild: clean all
 
+run: clean all 
+	./$(TARGET) 2>err.log
+
 .PHONY: all clean rebuild
