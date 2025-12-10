@@ -247,10 +247,10 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
           
           switch (obs->fire_direction) {
             case FIREJET_UP:
-              fire_y += j;
+              fire_y -= j;  // Move up (decreasing y in level space)
               break;
             case FIREJET_DOWN:
-              fire_y -= j;
+              fire_y += j;  // Move down (increasing y in level space)
               break;
             case FIREJET_LEFT:
               fire_x -= j;

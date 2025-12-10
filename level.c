@@ -240,7 +240,7 @@ LEVEL *LoadLevel(const char *filename) {
             new_obs.fire_length = 5;
           }
           if (parsed < 6) {
-            new_obs.fire_interval = 60;  // 3 seconds at 20 FPS
+            new_obs.fire_interval = 3 * FRAMES_PER_SECOND;  // 3 seconds default
           }
           
           new_obs.last_fire_frame = 0;

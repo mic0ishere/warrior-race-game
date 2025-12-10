@@ -14,6 +14,8 @@
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define LEVEL_FILE "level1.txt"
+#define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND)  // 3 seconds
+#define FIREJET_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND     // 1 second
 
 // Color pair identifiers
 #define PLAY_COLOR 1

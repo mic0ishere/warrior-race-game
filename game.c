@@ -162,8 +162,8 @@ void MoveEnemies(GAMESTATE *state) {
       }
       
     } else if (enemy->type == ENEMY_TELEPORTER) {
-      // Teleport every 3 seconds (60 frames at 20 FPS)
-      if (state->frames_elapsed - enemy->last_teleport_frame >= 60) {
+      // Teleport every 3 seconds
+      if (state->frames_elapsed - enemy->last_teleport_frame >= TELEPORTER_INTERVAL_FRAMES) {
         // Random position within bounding box
         int range_x = enemy->pos2.x - enemy->pos1.x + 1;
         int range_y = enemy->pos2.y - enemy->pos1.y + 1;
@@ -206,10 +206,10 @@ int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos, int frames_e
     
     switch (firejet->fire_direction) {
       case FIREJET_UP:
-        fire_y += i;
+        fire_y -= i;  // Move up (decreasing y in level space)
         break;
       case FIREJET_DOWN:
-        fire_y -= i;
+        fire_y += i;  // Move down (increasing y in level space)
         break;
       case FIREJET_LEFT:
         fire_x -= i;
@@ -242,11 +242,11 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
       // Update fire jet state
       int frames_since_fire = state->frames_elapsed - obs->last_fire_frame;
       
-      // Fire for 1 second (20 frames), then wait for interval
+      // Fire for 1 second, then wait for interval
       if (frames_since_fire >= obs->fire_interval) {
         obs->is_active = 1;
         
-        if (frames_since_fire >= obs->fire_interval + FRAMES_PER_SECOND) {
+        if (frames_since_fire >= obs->fire_interval + FIREJET_ACTIVE_DURATION_FRAMES) {
           obs->is_active = 0;
           obs->last_fire_frame = state->frames_elapsed;
         }
