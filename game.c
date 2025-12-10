@@ -168,12 +168,15 @@ void MoveEnemies(GAMESTATE *state) {
         int range_x = enemy->pos2.x - enemy->pos1.x + 1;
         int range_y = enemy->pos2.y - enemy->pos1.y + 1;
         
-        wanted_pos.x = enemy->pos1.x + (rand() % range_x);
-        wanted_pos.y = enemy->pos1.y + (rand() % range_y);
-        
-        if (CheckCollision(state, wanted_pos)) {
-          enemy->current_pos = wanted_pos;
-          enemy->last_teleport_frame = state->frames_elapsed;
+        // Safety check: ensure positive range
+        if (range_x > 0 && range_y > 0) {
+          wanted_pos.x = enemy->pos1.x + (rand() % range_x);
+          wanted_pos.y = enemy->pos1.y + (rand() % range_y);
+          
+          if (CheckCollision(state, wanted_pos)) {
+            enemy->current_pos = wanted_pos;
+            enemy->last_teleport_frame = state->frames_elapsed;
+          }
         }
       }
     }
