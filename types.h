@@ -9,11 +9,14 @@
 #define DOWN 's'
 #define LEFT 'a'
 #define RIGHT 'd'
+#define PAUSE 'p'
 #define NOKEY ERR
 
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define LEVEL_FILE "level1.txt"
+#define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds
+#define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
 
 // Color pair identifiers
 #define PLAY_COLOR 1
@@ -25,6 +28,8 @@
 #define TOTEM_COLOR 7
 #define OBSTACLE_COLOR 8
 #define PLAYER_COLOR 9
+#define SPIKE_COLOR 10
+#define FIREJET_COLOR 11
 
 // Window dimensions and position
 #define BORDER 1
@@ -37,7 +42,7 @@
 // Game status codes
 #define CONTINUE 0
 #define GAME_TIMEOUT 1
-#define OUT_OF_LIVES 2
+#define OUT_OF_LIFES 2
 #define USER_QUIT 3
 #define WIN_POINTS 10
 
@@ -86,10 +91,39 @@ typedef struct {
   POSITION pos2;
 } OBSTACLE;
 
+// Aggressive obstacle type enumeration
+typedef enum {
+  AGGRESSIVE_SPIKE,
+  AGGRESSIVE_FIREJET,
+  AGGRESSIVE_TYPE_UNKNOWN
+} AGGRESSIVE_OBSTACLE_TYPE;
+
+// Fire jet direction enumeration
+typedef enum {
+  OBSTACLE_UP,
+  OBSTACLE_DOWN,
+  OBSTACLE_LEFT,
+  OBSTACLE_RIGHT
+} AGGRESSIVE_OBSTACLE_DIRECTION;
+
+// Aggressive obstacle structure
+typedef struct {
+  POSITION pos;
+  AGGRESSIVE_OBSTACLE_TYPE type;
+  AGGRESSIVE_OBSTACLE_DIRECTION direction;
+  int fire_length;     // For fire jets - how far fire travels
+  int active_interval; // Frames between activations
+  int last_active_frame;
+  int is_active;
+} AGGRESSIVE_OBSTACLE;
+
 // Enemy type enumeration
 typedef enum {
   ENEMY_PATROL_HORIZONTAL,
   ENEMY_PATROL_VERTICAL,
+  ENEMY_PATROL_RANDOM,
+  ENEMY_CHASER,
+  ENEMY_TELEPORTER,
   ENEMY_TYPE_UNKNOWN
 } ENEMY_TYPE;
 
@@ -101,12 +135,14 @@ typedef struct {
   ENEMY_TYPE type;
   int direction;
   int speed;
+  int last_teleport_frame; // For teleporter enemies
+  int chase_radius;        // For chaser enemies - chase range
 } ENEMY;
 
 // Level structure
 typedef struct {
   int time_limit;
-  int lives;
+  int lifes;
   int win_score;
   int width, height;
   POSITION start_pos;
@@ -116,16 +152,28 @@ typedef struct {
   OBSTACLE *obstacles;
   int num_enemies;
   ENEMY *enemies;
+  int num_aggressive_obstacles;
+  AGGRESSIVE_OBSTACLE *aggressive_obstacles;
 } LEVEL;
+
+typedef enum {
+  LIFE_STATUS_NONE,
+  LIFE_PATROL_KILL,
+  LIFE_CHASER_KILL,
+  LIFE_TELEPORTER_KILL,
+  LIFE_FIRE_JET,
+  LIFE_SPIKE_WALK
+} LIFE_LOST_STATUS;
 
 // Game state structure
 typedef struct {
   int score;
   int time_elapsed;
   int frames_elapsed;
-  int lives_left;
+  int lifes_left;
   char debug_msg[MAX_DEBUG_LEN];
   int status;
+  LIFE_LOST_STATUS life_loss;
   LEVEL *level;
   POSITION player_pos;
 } GAMESTATE;

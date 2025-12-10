@@ -21,9 +21,9 @@ A terminal-based roguelike game written in C using ncurses library. Players navi
 ### Key Types (in `types.h`)
 - `POSITION`: `{x, y}` coordinates in level space
 - `ENEMY`: Has `pos1`, `pos2` (patrol endpoints), `current_pos`, `speed`, `direction`, `type` (HORIZONTAL/VERTICAL)
-- `GAMESTATE`: Central game state - player position, score, lives, time, level reference
+- `GAMESTATE`: Central game state - player position, score, lifes, time, level reference
 - `WIN`: ncurses window wrapper with position and color info
-- `LEVEL`: All level data - config (time, lives, win_score), arrays of totems/obstacles/enemies
+- `LEVEL`: All level data - config (time, lifes, win_score), arrays of totems/obstacles/enemies
 
 ## Build & Development
 
@@ -86,11 +86,7 @@ Use debug window: Call `ShowDebug(windows.debugwin, "message")` to display on sc
 Alternatively output to `stderr` for off-screen logging.
 
 ## Roadmap Features (Planned)
-- Power-ups (shield, speed boost, double points, extra life)
-- New enemy types (random walkers, chasers, patrollers, teleporters)
-- Obstacles (spikes, fire jets, teleport pads, sticky floors, tall grass, one-way doors)
-- Level selector and multiple levels
-- Ranking system and final score calculation
+Check `roadmap.md` for detailed planned features
 
 ## Collaboration Notes
 Project has successful experience with AI agents via PR workflow. Provide:

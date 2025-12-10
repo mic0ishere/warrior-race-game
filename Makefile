@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic -Wformat-security
-LDFLAGS = -lncurses
+LDFLAGS = -lncurses -lm
 
 # Target executable
 TARGET = warrior_race
@@ -32,5 +32,8 @@ clean:
 
 # Rebuild everything
 rebuild: clean all
+
+run: clean all 
+	./$(TARGET) 2>err.log
 
 .PHONY: all clean rebuild

@@ -1,6 +1,6 @@
 [CONFIG]
 TIME=60
-LIVES=3
+LIFES=3
 WIDTH=30
 HEIGHT=30
 START_X=0
@@ -20,8 +20,32 @@ WIN_SCORE=30
 (10,15) (30,16)
 
 [ENEMIES]
-# (x1,y1) (x2,y2) speed direction[-1,1]
-# when direction is -1, enemy starts at pos2 and moves towards pos1
-(0,10) (10,10) 1 -1
-(20,20) (20,25) 2
-(0,12) (30,12) 5
+# type          bounds          start speed [extra_params]
+# PATROL        (x1,y1) (x2,y2) (x,y) 1-5   
+# RANDOM        (x1,y1) (x2,y2) (x,y) 1-5   
+# CHASER        (x1,y1) (x2,y2) (x,y) 1-5   chase_radius
+# TELEPORTER    (x1,y1) (x2,y2) (x,y) 1-5   
+
+PATROL (0,10) (10,10) (5,10) 1
+PATROL (20,20) (20,25) (20,20) 3
+PATROL (0,12) (29,12) (0,12) 2
+RANDOM (20,0) (29,20) (25,10) 2
+
+CHASER (20,0) (29,10) (25,2) 3 8
+TELEPORTER (0,20) (10,29) (0,25) 1
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y) direction interval 
+# interval: seconds between emissions
+# direction: UP, DOWN, LEFT, RIGHT
+SPIKE (12,5) UP 3
+SPIKE (13,5) UP 3
+SPIKE (14,5) UP 3
+SPIKE (10,2) LEFT 1.5
+SPIKE (11,2) DOWN 1.5
+
+# FIREJET (x,y) direction interval length
+# length: how far fire travels
+FIREJET (5,10) RIGHT 2 7
+FIREJET (25,15) LEFT 1.5 6
+FIREJET (15,25) UP 3 5

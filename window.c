@@ -1,4 +1,5 @@
 #include "window.h"
+#include "game.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,8 @@ WINDOW *InitScreen(void) {
   init_pair(TOTEM_COLOR, COLOR_BLACK, COLOR_YELLOW + 8);
   init_pair(OBSTACLE_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(PLAYER_COLOR, COLOR_BLACK, COLOR_WHITE);
+  init_pair(SPIKE_COLOR, COLOR_WHITE + 8, COLOR_MAGENTA);
+  init_pair(FIREJET_COLOR, COLOR_WHITE + 8, COLOR_RED + 8);
 
   noecho();
   curs_set(0);
@@ -50,7 +53,7 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
              int bo, int is_debug) {
 
   WIN *W = (WIN *)malloc(sizeof(WIN));
-  
+
   if (W == NULL) {
     return NULL;
   }
@@ -62,7 +65,7 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   W->color = color;
 
   W->window = subwin(parent, rows, cols, y, x);
-  
+
   if (W->window == NULL) {
     free(W);
     return NULL;
@@ -84,8 +87,8 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 }
 
 int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
-  windows->playwin = InitWin(screenwin, ROWS, COLS, OFFY, OFFX, 
-                             PLAY_COLOR, BORDER, FALSE);
+  windows->playwin =
+      InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
   if (windows->playwin == NULL) {
     return 1;
   }
@@ -143,17 +146,17 @@ void EndGame(WIN *W, char *msg, int color_pair) {
 void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
-  mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lives: %d/%d",
+  mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lifes: %d/%d",
             state->score, state->level->win_score,
-            state->level->time_limit - state->time_elapsed, state->lives_left,
-            state->level->lives);
+            state->level->time_limit - state->time_elapsed, state->lifes_left,
+            state->level->lifes);
 
   char pos_str[32];
   snprintf(pos_str, sizeof(pos_str), "(%d,%d)", state->player_pos.x,
            state->player_pos.y);
   mvwprintw(W->window, 1, COLS - BORDER - strlen(pos_str), "%s", pos_str);
 
-  mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit");
+  mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit [P]=Pause");
 
   wrefresh(W->window);
 }
@@ -176,6 +179,46 @@ void ShowDebug(WIN *W, const char *msg) {
 #endif
 }
 
+void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
+  char *msg = "You lost a life!";
+  char *reason_msg = NULL;
+
+  switch (life_loss) {
+  case LIFE_PATROL_KILL:
+    reason_msg = "Patrollers have caught you!";
+    break;
+  case LIFE_CHASER_KILL:
+    reason_msg = "You can't escape the chaser!";
+    break;
+  case LIFE_TELEPORTER_KILL:
+    reason_msg = "An enemy has teleported onto you!";
+    break;
+  case LIFE_FIRE_JET:
+    reason_msg = "Burned by fire jet!";
+    break;
+  case LIFE_SPIKE_WALK:
+    reason_msg = "Impaled on spikes!";
+    break;
+  default:
+    reason_msg = "An unknown force has defeated you!";
+    break;
+  }
+
+  wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
+  mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
+  mvwprintw(W->window, W->rows / 2 + 3, (W->cols - strlen(reason_msg)) / 2,
+            "%s", reason_msg);
+  wattron(W->window, COLOR_PAIR(W->color));
+  wrefresh(W->window);
+}
+
+void ShowAlert(WIN *W, const char *msg) {
+  wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
+  mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
+  wattron(W->window, COLOR_PAIR(W->color));
+  wrefresh(W->window);
+}
+
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y) {
   int center_x = W->cols / 2;
@@ -195,8 +238,8 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
   POSITION screen_pos;
   LevelToScreenCoords(W, level_x, level_y, state, &screen_pos.x, &screen_pos.y);
 
-  if (screen_pos.x >= 0 && screen_pos.x < W->cols && 
-      screen_pos.y >= 0 && screen_pos.y < W->rows) {
+  if (screen_pos.x >= 0 && screen_pos.x < W->cols && screen_pos.y >= 0 &&
+      screen_pos.y < W->rows) {
     wattron(W->window, COLOR_PAIR(color_pair));
     mvwprintw(W->window, screen_pos.y, screen_pos.x, "%s", symbol);
   }
@@ -211,6 +254,10 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
       continue;
     SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
   }
+
+  // Render player
+  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
+                  PLAYER_COLOR);
 
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
@@ -238,8 +285,28 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     SafePrintEntity(W, state->level->width, y, "|", state, OBSTACLE_COLOR);
   }
 
-  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
-                  PLAYER_COLOR);
+  for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
+    AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
+
+    if (obs->type == AGGRESSIVE_SPIKE) {
+      const char *spike_symbols[] = {"^", "v", "<", ">"};
+
+      if (obs->is_active) {
+        SafePrintEntity(W, obs->pos.x, obs->pos.y,
+                        spike_symbols[obs->direction % 4], state, SPIKE_COLOR);
+      }
+    } else if (obs->type == AGGRESSIVE_FIREJET) {
+      SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
+
+      if (obs->is_active) {
+        for (int j = 1; j <= obs->fire_length; j++) {
+          POSITION fire_pos = obs->pos;
+          MoveInDirection(&fire_pos, obs->direction, j);
+          SafePrintEntity(W, fire_pos.x, fire_pos.y, "*", state, FIREJET_COLOR);
+        }
+      }
+    }
+  }
 
   wrefresh(W->window);
 }
