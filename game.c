@@ -126,6 +126,11 @@ POSITION NextEnemyPosition(ENEMY *enemy) {
   return next_pos;
 }
 
+void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason) {
+  state->lifes_left--;
+  state->life_loss = reason;
+}
+
 void MoveEnemies(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
@@ -211,8 +216,10 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
-      state->lifes_left--;
-      state->player_pos = state->level->start_pos;
+      HandlePlayerKill(state,
+                       (enemy->type == ENEMY_TELEPORTER) ? LIFE_TELEPORTER_KILL
+                       : (enemy->type == ENEMY_CHASER)   ? LIFE_CHASER_KILL
+                                                         : LIFE_PATROL_KILL);
       break;
     }
   }
@@ -257,14 +264,12 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
     if (obs->type == AGGRESSIVE_SPIKE) {
       if (obs->pos.x == state->player_pos.x &&
           obs->pos.y == state->player_pos.y && obs->is_active) {
-        state->lifes_left--;
-        state->player_pos = state->level->start_pos;
+        HandlePlayerKill(state, LIFE_SPIKE_WALK);
         break;
       }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
       if (IsOnFirePath(obs, state->player_pos)) {
-        state->lifes_left--;
-        state->player_pos = state->level->start_pos;
+        HandlePlayerKill(state, LIFE_FIRE_JET);
         break;
       }
     }
@@ -329,11 +334,11 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
              state->player_pos.x, state->player_pos.y);
 
-    RenderPlayArea(playwin, state);
     CollectTotems(state);
     MoveEnemies(state);
     CheckPlayerEnemyCollision(state);
     UpdateAggressiveObstacles(state);
+    RenderPlayArea(playwin, state);
 
     state->frames_elapsed++;
     state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
@@ -355,6 +360,13 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     if (state->score >= state->level->win_score) {
       state->status = WIN_POINTS;
       break;
+    }
+
+    if (state->life_loss != LIFE_STATUS_NONE) {
+      ShowLifeLoss(playwin, state->life_loss);
+      state->life_loss = LIFE_STATUS_NONE;
+      state->player_pos = state->level->start_pos;
+      usleep(2 * 1000 * 1000); // Pause for 2 seconds to show life loss message
     }
 
     flushinp();

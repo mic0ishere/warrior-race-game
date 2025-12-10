@@ -21,6 +21,9 @@ void MoveInDirection(POSITION *pos, int direction, int amount);
 // Get next enemy position
 POSITION NextEnemyPosition(ENEMY *enemy);
 
+// Handle player kill and update state
+void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason);
+
 // Move all enemies
 void MoveEnemies(GAMESTATE *state);
 

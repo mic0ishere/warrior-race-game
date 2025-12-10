@@ -28,6 +28,9 @@ void ShowStatus(WIN *W, GAMESTATE *state);
 // Display debug information
 void ShowDebug(WIN *W, const char *msg);
 
+// Show life loss reason in status window
+void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss);
+
 // Convert level coordinates to screen coordinates
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y);

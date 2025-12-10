@@ -179,6 +179,38 @@ void ShowDebug(WIN *W, const char *msg) {
 #endif
 }
 
+void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
+  char *msg = "You lost a life!";
+  char *reason_msg = NULL;
+
+  switch (life_loss) {
+  case LIFE_PATROL_KILL:
+    reason_msg = "Killed by patrol enemy!";
+    break;
+  case LIFE_CHASER_KILL:
+    reason_msg = "Killed by chaser enemy!";
+    break;
+  case LIFE_TELEPORTER_KILL:
+    reason_msg = "Killed by teleporter enemy!";
+    break;
+  case LIFE_FIRE_JET:
+    reason_msg = "Burned by fire jet!";
+    break;
+  case LIFE_SPIKE_WALK:
+    reason_msg = "Impaled on spikes!";
+    break;
+  default:
+    return;
+  }
+
+  wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
+  mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
+  mvwprintw(W->window, W->rows / 2 + 3, (W->cols - strlen(reason_msg)) / 2,
+            "%s", reason_msg);
+  wattron(W->window, COLOR_PAIR(W->color));
+  wrefresh(W->window);
+}
+
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y) {
   int center_x = W->cols / 2;
@@ -215,6 +247,10 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
   }
 
+  // Render player
+  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
+                  PLAYER_COLOR);
+
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state,
@@ -231,7 +267,16 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     }
   }
 
-  // Render aggressive obstacles
+  for (int x = 0; x < state->level->width; x++) {
+    SafePrintEntity(W, x, -1, "-", state, OBSTACLE_COLOR);
+    SafePrintEntity(W, x, state->level->height, "-", state, OBSTACLE_COLOR);
+  }
+
+  for (int y = 0; y < state->level->height; y++) {
+    SafePrintEntity(W, -1, y, "|", state, OBSTACLE_COLOR);
+    SafePrintEntity(W, state->level->width, y, "|", state, OBSTACLE_COLOR);
+  }
+
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
 
@@ -245,7 +290,6 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     } else if (obs->type == AGGRESSIVE_FIREJET) {
       SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
 
-      // Render fire if active
       if (obs->is_active) {
         for (int j = 1; j <= obs->fire_length; j++) {
           POSITION fire_pos = obs->pos;
@@ -255,19 +299,6 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
       }
     }
   }
-
-  for (int x = 0; x < state->level->width; x++) {
-    SafePrintEntity(W, x, -1, "-", state, OBSTACLE_COLOR);
-    SafePrintEntity(W, x, state->level->height, "-", state, OBSTACLE_COLOR);
-  }
-
-  for (int y = 0; y < state->level->height; y++) {
-    SafePrintEntity(W, -1, y, "|", state, OBSTACLE_COLOR);
-    SafePrintEntity(W, state->level->width, y, "|", state, OBSTACLE_COLOR);
-  }
-
-  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
-                  PLAYER_COLOR);
 
   wrefresh(W->window);
 }
