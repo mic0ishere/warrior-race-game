@@ -185,13 +185,13 @@ void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
 
   switch (life_loss) {
   case LIFE_PATROL_KILL:
-    reason_msg = "Killed by patrol enemy!";
+    reason_msg = "Patrollers have caught you!";
     break;
   case LIFE_CHASER_KILL:
-    reason_msg = "Killed by chaser enemy!";
+    reason_msg = "You can't escape the chaser!";
     break;
   case LIFE_TELEPORTER_KILL:
-    reason_msg = "Killed by teleporter enemy!";
+    reason_msg = "An enemy has teleported onto you!";
     break;
   case LIFE_FIRE_JET:
     reason_msg = "Burned by fire jet!";
@@ -200,7 +200,8 @@ void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
     reason_msg = "Impaled on spikes!";
     break;
   default:
-    return;
+    reason_msg = "An unknown force has defeated you!";
+    break;
   }
 
   wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
