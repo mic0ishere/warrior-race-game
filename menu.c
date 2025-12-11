@@ -2,6 +2,7 @@
 #include <dirent.h>
 #include <ncurses.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -9,38 +10,47 @@
 static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
                                               "Exit"};
 
+// Comparison function for qsort
+static int compare_strings(const void *a, const void *b) {
+  return strcmp((const char *)a, (const char *)b);
+}
+
 int ShowMainMenu(WINDOW *screenwin) {
   int highlight = 0;
   int choice = -1;
   int c;
+  int max_rows, max_cols;
 
   curs_set(0); // Hide cursor
   keypad(screenwin, TRUE);
   nodelay(screenwin, FALSE);
 
   while (1) {
+    // Get actual terminal dimensions
+    getmaxyx(screenwin, max_rows, max_cols);
+    
     wclear(screenwin);
     box(screenwin, 0, 0);
 
     // Title
-    mvwprintw(screenwin, 2, (COLS - 20) / 2, "=== WARRIOR RACE ===");
-    mvwprintw(screenwin, 3, (COLS - 30) / 2, "Terminal Roguelike Adventure");
+    mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== WARRIOR RACE ===");
+    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Terminal Roguelike Adventure");
 
     // Menu items
     for (int i = 0; i < MENU_ITEMS; i++) {
       if (i == highlight) {
         wattron(screenwin, A_REVERSE);
       }
-      mvwprintw(screenwin, 6 + i * 2, (COLS - 20) / 2, "%s", menu_items[i]);
+      mvwprintw(screenwin, 6 + i * 2, (max_cols - 20) / 2, "%s", menu_items[i]);
       if (i == highlight) {
         wattroff(screenwin, A_REVERSE);
       }
     }
 
     // Instructions
-    mvwprintw(screenwin, ROWS - 3, (COLS - 40) / 2,
+    mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
               "Use arrow keys or w/s to navigate");
-    mvwprintw(screenwin, ROWS - 2, (COLS - 30) / 2, "Press Enter to select");
+    mvwprintw(screenwin, max_rows - 2, (max_cols - 30) / 2, "Press Enter to select");
 
     wrefresh(screenwin);
 
@@ -93,17 +103,8 @@ int ScanLevels(char levels[][256]) {
 
   closedir(dir);
 
-  // Sort levels alphabetically (simple bubble sort)
-  for (int i = 0; i < count - 1; i++) {
-    for (int j = 0; j < count - i - 1; j++) {
-      if (strcmp(levels[j], levels[j + 1]) > 0) {
-        char temp[256];
-        strcpy(temp, levels[j]);
-        strcpy(levels[j], levels[j + 1]);
-        strcpy(levels[j + 1], temp);
-      }
-    }
-  }
+  // Sort levels alphabetically using qsort
+  qsort(levels, count, 256, compare_strings);
 
   return count;
 }
@@ -112,15 +113,19 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
   LEVEL_SELECT_RESULT result;
+  int max_rows, max_cols;
   result.selected = 0;
   result.filename[0] = '\0';
+
+  // Get actual terminal dimensions
+  getmaxyx(screenwin, max_rows, max_cols);
 
   if (num_levels == 0) {
     wclear(screenwin);
     box(screenwin, 0, 0);
-    mvwprintw(screenwin, ROWS / 2, (COLS - 30) / 2,
+    mvwprintw(screenwin, max_rows / 2, (max_cols - 30) / 2,
               "No levels found in levels/ directory!");
-    mvwprintw(screenwin, ROWS / 2 + 2, (COLS - 20) / 2,
+    mvwprintw(screenwin, max_rows / 2 + 2, (max_cols - 20) / 2,
               "Press any key to return");
     wrefresh(screenwin);
     nodelay(screenwin, FALSE);
@@ -136,16 +141,19 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
   nodelay(screenwin, FALSE);
 
   while (1) {
+    // Get actual terminal dimensions in case of resize
+    getmaxyx(screenwin, max_rows, max_cols);
+    
     wclear(screenwin);
     box(screenwin, 0, 0);
 
     // Title
-    mvwprintw(screenwin, 2, (COLS - 20) / 2, "=== SELECT LEVEL ===");
-    mvwprintw(screenwin, 3, (COLS - 30) / 2, "Found %d level(s)", num_levels);
+    mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== SELECT LEVEL ===");
+    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Found %d level(s)", num_levels);
 
     // Level list
     int start_y = 6;
-    int visible_items = ROWS - 10;
+    int visible_items = max_rows - 10;
     int scroll_offset = 0;
 
     if (highlight >= visible_items) {
@@ -167,8 +175,9 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
       } else {
         basename = filename;
       }
-      strncpy(display_name, basename, 255);
-      display_name[255] = '\0';
+      // Safe string copy - leave room for null terminator
+      strncpy(display_name, basename, sizeof(display_name) - 1);
+      display_name[sizeof(display_name) - 1] = '\0';
 
       // Remove .txt extension
       char *ext = strstr(display_name, ".txt");
@@ -176,7 +185,7 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
         *ext = '\0';
       }
 
-      mvwprintw(screenwin, start_y + (i - scroll_offset), (COLS - 40) / 2,
+      mvwprintw(screenwin, start_y + (i - scroll_offset), (max_cols - 40) / 2,
                 "%s", display_name);
 
       if (i == highlight) {
@@ -185,9 +194,9 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
     }
 
     // Instructions
-    mvwprintw(screenwin, ROWS - 3, (COLS - 40) / 2,
+    mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
               "Use arrow keys or w/s to navigate");
-    mvwprintw(screenwin, ROWS - 2, (COLS - 30) / 2,
+    mvwprintw(screenwin, max_rows - 2, (max_cols - 30) / 2,
               "Enter to select, Q to cancel");
 
     wrefresh(screenwin);
@@ -207,8 +216,9 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
       break;
     case 10: // Enter key
     case KEY_ENTER:
-      strncpy(result.filename, levels[highlight], 255);
-      result.filename[255] = '\0';
+      // Safe string copy - ensure null termination
+      strncpy(result.filename, levels[highlight], sizeof(result.filename) - 1);
+      result.filename[sizeof(result.filename) - 1] = '\0';
       result.selected = 1;
       return result;
     case 'q':
@@ -224,15 +234,20 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
 }
 
 void ShowRanking(WINDOW *screenwin) {
+  int max_rows, max_cols;
+  
+  // Get actual terminal dimensions
+  getmaxyx(screenwin, max_rows, max_cols);
+  
   wclear(screenwin);
   box(screenwin, 0, 0);
 
-  mvwprintw(screenwin, 2, (COLS - 20) / 2, "=== RANKING ===");
-  mvwprintw(screenwin, ROWS / 2, (COLS - 40) / 2,
+  mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== RANKING ===");
+  mvwprintw(screenwin, max_rows / 2, (max_cols - 40) / 2,
             "Ranking system coming soon!");
-  mvwprintw(screenwin, ROWS / 2 + 2, (COLS - 35) / 2,
+  mvwprintw(screenwin, max_rows / 2 + 2, (max_cols - 35) / 2,
             "Check back in the next update.");
-  mvwprintw(screenwin, ROWS - 2, (COLS - 20) / 2, "Press any key to return");
+  mvwprintw(screenwin, max_rows - 2, (max_cols - 20) / 2, "Press any key to return");
 
   wrefresh(screenwin);
   nodelay(screenwin, FALSE);
