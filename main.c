@@ -11,38 +11,41 @@ int main(void) {
   WINDOW *screenwin = InitScreen();
 
   while (1) {
+    WIN *mainwin = InitWin(screenwin, ROWS + STAT_ROWS, COLS, OFFY, OFFX,
+                           DEFAULT_COLOR, BORDER, 0);
+
     // Show main menu
-    int menu_choice = ShowMainMenu(screenwin);
+    int menu_choice = ShowMainMenu(mainwin);
 
     if (menu_choice == MENU_EXIT) {
+      CleanupWin(mainwin);
       break;
     } else if (menu_choice == MENU_RANKING) {
-      ShowRanking(screenwin);
+      ShowRanking(mainwin);
       continue;
     } else if (menu_choice == MENU_NEW_GAME) {
-      // Show level selector
-      LEVEL_SELECT_RESULT level_result = ShowLevelSelector(screenwin);
+      // Load level from level selector
+      LEVEL *loaded_level = ShowLevelSelector(mainwin);
 
-      if (!level_result.selected) {
+      if (!loaded_level) {
         continue; // User cancelled, go back to main menu
       }
 
-      // Start game with selected level
+      CleanupWin(mainwin);
+
       WINDOWS windows = {NULL, NULL, NULL};
 
       int result = InitAllWindows(screenwin, &windows);
       if (result != 0) {
-        const char *window_names[] = {"", "play window", "status window",
+        const char *window_names[] = {"play window", "status window",
                                       "debug window"};
-        wclear(screenwin);
-        mvwprintw(screenwin, ROWS / 2, (COLS - 40) / 2,
-                  "Error: Failed to create %s", window_names[result]);
-        wrefresh(screenwin);
-        sleep(2);
-        continue;
+        fprintf(stderr, "Error: Failed to create %s\n",
+                window_names[result - 1]);
+        FreeLevel(loaded_level);
+        break;
       }
 
-      GAMESTATE *state = InitGame(level_result.filename);
+      GAMESTATE *state = InitGame(loaded_level);
 
       MainLoop(windows.playwin, windows.statwin, windows.debugwin, state);
 
@@ -61,6 +64,6 @@ int main(void) {
   endwin();
   refresh();
   endwin();
-  
+
   return 0;
 }

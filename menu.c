@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "level.h"
 #include <dirent.h>
 #include <ncurses.h>
 #include <stdio.h>
@@ -9,49 +10,47 @@
 // Main menu items
 static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
                                              "Exit"};
+static const char *instructions =
+    "Use [W/S] to navigate, [space] to select, [Q] to exit";
 
-int ShowMainMenu(WINDOW *screenwin) {
+int ShowMainMenu(WIN *W) {
+  WINDOW *win = W->window;
   int highlight = 0;
   int choice = -1;
   int c;
-  int max_rows, max_cols;
 
-  curs_set(0); // Hide cursor
-  keypad(screenwin, TRUE);
-  nodelay(screenwin, FALSE);
+  // Wait for user input
+  nodelay(win, FALSE);
 
   while (1) {
-    // Get actual terminal dimensions
-    getmaxyx(screenwin, max_rows, max_cols);
-
-    wclear(screenwin);
-    box(screenwin, 0, 0);
+    wclear(win);
+    box(win, 0, 0);
 
     // Title
-    mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== WARRIOR RACE ===");
-    mvwprintw(screenwin, 3, (max_cols - 30) / 2,
-              "Terminal Roguelike Adventure");
+    const char *title = "=== WARRIOR RACE ===";
+    const char *subtitle = "Terminal Roguelike Adventure";
+    mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
+    mvwprintw(win, 3, (W->cols - strlen(subtitle)) / 2, "%s", subtitle);
 
     // Menu items
     for (int i = 0; i < MENU_ITEMS; i++) {
-      if (i == highlight) {
-        wattron(screenwin, A_REVERSE);
-      }
-      mvwprintw(screenwin, 6 + i * 2, (max_cols - 20) / 2, "%s", menu_items[i]);
-      if (i == highlight) {
-        wattroff(screenwin, A_REVERSE);
-      }
+      if (i == highlight)
+        wattron(win, A_REVERSE);
+
+      mvwprintw(win, 8 + i * 2, (W->cols - 20) / 2, "%d. %s", i + 1,
+                menu_items[i]);
+
+      if (i == highlight)
+        wattroff(win, A_REVERSE);
     }
 
-    // Instructions
-    mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
-              "Use [W/S] to navigate");
-    mvwprintw(screenwin, max_rows - 2, (max_cols - 40) / 2,
-              "Press spacebar to select");
+    // Display instructions
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
+              instructions);
 
-    wrefresh(screenwin);
+    wrefresh(win);
 
-    c = wgetch(screenwin);
+    c = wgetch(win);
 
     switch (c) {
     case UP:
@@ -66,6 +65,10 @@ int ShowMainMenu(WINDOW *screenwin) {
     case QUIT:
       return MENU_EXIT;
     default:
+      if (c >= '1' && c <= '0' + MENU_ITEMS) {
+        return c - '1';
+      }
+
       break;
     }
   }
@@ -97,97 +100,92 @@ int ScanLevels(char levels[][256]) {
   return count;
 }
 
-LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
+char *GetLevelName(const char *filename) {
+  const char *basename = strrchr(filename, '/'); // Find last '/'
+  if (basename) {
+    basename++; // Skip the '/'
+  } else {
+    basename = filename;
+  }
+
+  // Safe string copy, leaving room for null terminator
+  static char level_name[256];
+  strncpy(level_name, basename, sizeof(level_name) - 1);
+  level_name[sizeof(level_name) - 1] = '\0';
+
+  // Remove .txt extension
+  char *ext = strstr(level_name, ".txt");
+  if (ext) {
+    *ext = '\0';
+  }
+
+  return level_name;
+}
+
+LEVEL *ShowLevelSelector(WIN *W) {
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
-  LEVEL_SELECT_RESULT result;
-  int max_rows, max_cols;
-  result.selected = 0;
-  result.filename[0] = '\0';
 
-  // Get actual terminal dimensions
-  getmaxyx(screenwin, max_rows, max_cols);
-
-  if (num_levels == 0) {
-    wclear(screenwin);
-    box(screenwin, 0, 0);
-    mvwprintw(screenwin, max_rows / 2, (max_cols - 30) / 2,
-              "No levels found in levels/ directory!");
-    mvwprintw(screenwin, max_rows / 2 + 2, (max_cols - 20) / 2,
-              "Press any key to return");
-    wrefresh(screenwin);
-    nodelay(screenwin, FALSE);
-    wgetch(screenwin);
-    return result;
+  if (num_levels == 1) {
+    return LoadLevel(levels[0]);
   }
 
   int highlight = 0;
   int c;
 
-  nodelay(screenwin, FALSE);
+  WINDOW *win = W->window;
+
+  // Wait for user input
+  nodelay(win, FALSE);
 
   while (1) {
-    // Get actual terminal dimensions in case of resize
-    getmaxyx(screenwin, max_rows, max_cols);
+    wclear(win);
+    box(win, 0, 0);
 
-    wclear(screenwin);
-    box(screenwin, 0, 0);
-
-    // Title
-    mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== SELECT LEVEL ===");
-    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Found %d level(s)",
-              num_levels);
+    const char *title = "=== SELECT LEVEL ===";
+    mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
 
     // Level list
-    int start_y = 6;
-    int visible_items = max_rows - 10;
+    int start_y = 5;
+    int visible_items = W->rows - 10;
     int scroll_offset = 0;
+    const int column_start = (W->cols) / 2 - 16;
 
     if (highlight >= visible_items) {
       scroll_offset = highlight - visible_items + 1;
     }
 
     for (int i = scroll_offset;
-         i < num_levels && i < scroll_offset + visible_items; i++) {
+         i < num_levels && i <= scroll_offset + visible_items; i++) {
       if (i == highlight) {
-        wattron(screenwin, A_REVERSE);
+        wattron(win, A_REVERSE);
       }
 
-      // Extract just the filename without path and extension for display
-      char display_name[256];
-      const char *filename = levels[i];
-      const char *basename = strrchr(filename, '/');
-      if (basename) {
-        basename++; // Skip the '/'
-      } else {
-        basename = filename;
-      }
-      // Safe string copy - leave room for null terminator
-      strncpy(display_name, basename, sizeof(display_name) - 1);
-      display_name[sizeof(display_name) - 1] = '\0';
+      char *level_name = GetLevelName(levels[i]);
 
-      // Remove .txt extension
-      char *ext = strstr(display_name, ".txt");
-      if (ext) {
-        *ext = '\0';
-      }
-
-      mvwprintw(screenwin, start_y + (i - scroll_offset), (max_cols - 40) / 2,
-                "%s", display_name);
+      mvwprintw(win, start_y + (i - scroll_offset), column_start, "%d. %s",
+                i + 1, level_name);
 
       if (i == highlight) {
-        wattroff(screenwin, A_REVERSE);
+        wattroff(win, A_REVERSE);
       }
     }
 
-    mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
-              "Use [W/S] to navigate");
-    mvwprintw(screenwin, max_rows - 2, (max_cols - 40) / 2,
-              "Press spacebar to select, Q to cancel");
+    if (scroll_offset + visible_items < num_levels - 1) {
+      // Draw an empty line to clear previous content and show '... more levels' indicator
+      mvwhline(win, start_y + visible_items, 1, ' ', W->cols - 2);
+      mvwprintw(win, start_y + visible_items, column_start,
+                "... %d more levels\t\t\t",
+                num_levels - (scroll_offset + visible_items));
+    }
 
-    wrefresh(screenwin);
+    // Instructions
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
+              instructions);
 
-    c = wgetch(screenwin);
+    wrefresh(win);
+
+    c = wgetch(win);
 
     switch (c) {
     case UP:
@@ -197,40 +195,37 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
       highlight = (highlight + 1) % num_levels;
       break;
     case CONFIRM:
-      // Safe string copy - ensure null termination
-      strncpy(result.filename, levels[highlight], sizeof(result.filename) - 1);
-      result.filename[sizeof(result.filename) - 1] = '\0';
-      result.selected = 1;
-      return result;
+      return LoadLevel(levels[highlight]);
     case QUIT:
-      result.selected = 0;
-      return result;
+      return NULL;
     default:
+      if (c >= '1' && c <= '0' + num_levels) {
+        return LoadLevel(levels[c - '1']);
+      }
+
       break;
     }
   }
 
-  return result;
+  return NULL;
 }
 
-void ShowRanking(WINDOW *screenwin) {
-  int max_rows, max_cols;
+void ShowRanking(WIN *W) {
+  WINDOW *win = W->window;
 
-  // Get actual terminal dimensions
-  getmaxyx(screenwin, max_rows, max_cols);
+  wclear(win);
+  box(win, 0, 0);
 
-  wclear(screenwin);
-  box(screenwin, 0, 0);
+  const char *title = "=== GAME RANKING ===";
+  mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
 
-  mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== RANKING ===");
-  mvwprintw(screenwin, max_rows / 2, (max_cols - 40) / 2,
-            "Ranking system coming soon!");
-  mvwprintw(screenwin, max_rows / 2 + 2, (max_cols - 35) / 2,
-            "Check back in the next update.");
-  mvwprintw(screenwin, max_rows - 2, (max_cols - 20) / 2,
-            "Press any key to return");
+  const char *instructions = "Press any key to return";
+  mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
+            instructions);
 
-  wrefresh(screenwin);
-  nodelay(screenwin, FALSE);
-  wgetch(screenwin);
+  wrefresh(win);
+
+  // Wait for user input
+  nodelay(win, FALSE);
+  wgetch(win);
 }

@@ -19,6 +19,7 @@
 #define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
 
 // Color pair identifiers
+#define DEFAULT_COLOR 0
 #define PLAY_COLOR 1
 #define STAT_COLOR 2
 #define DEBUG_COLOR 3

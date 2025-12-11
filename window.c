@@ -16,6 +16,7 @@ WINDOW *InitScreen(void) {
   }
 
   start_color();
+  init_pair(DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
   init_pair(PLAY_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(STAT_COLOR, COLOR_YELLOW + 8, COLOR_BLUE);
   init_pair(DEBUG_COLOR, COLOR_RED + 8, COLOR_BLACK);
@@ -126,6 +127,15 @@ void CleanupWindows(WINDOWS *windows) {
   if (windows->debugwin) {
     delwin(windows->debugwin->window);
     free(windows->debugwin);
+  }
+}
+
+void CleanupWin(WIN *W) {
+  if (W) {
+    wclear(W->window);
+    wrefresh(W->window);
+    delwin(W->window);
+    free(W);
   }
 }
 

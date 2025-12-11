@@ -4,7 +4,7 @@
 #include "types.h"
 
 // Initialize game state
-GAMESTATE *InitGame(const char *level_filename);
+GAMESTATE *InitGame(LEVEL *level);
 
 // Check if position is within bounds
 int CheckWithinBounds(POSITION pos1, POSITION pos2, POSITION point);

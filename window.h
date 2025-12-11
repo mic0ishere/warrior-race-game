@@ -19,6 +19,9 @@ int InitAllWindows(WINDOW *screenwin, WINDOWS *windows);
 // Cleanup all windows
 void CleanupWindows(WINDOWS *windows);
 
+// Cleanup and close a single window
+void CleanupWin(WIN *W);
+
 // Display end game message
 void EndGame(WIN *W, char *msg, int color_pair);
 
