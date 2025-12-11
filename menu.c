@@ -10,8 +10,15 @@
 // Main menu items
 static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
                                              "Exit"};
+
+// Instructions string
 static const char *instructions =
     "Use [W/S] to navigate, [space] to select, [Q] to exit";
+
+// Comparison function for qsort
+static int compare_strings(const void *a, const void *b) {
+  return strcmp((const char *)a, (const char *)b);
+}
 
 int ShowMainMenu(WIN *W) {
   WINDOW *win = W->window;
@@ -97,6 +104,9 @@ int ScanLevels(char levels[][256]) {
 
   closedir(dir);
 
+  // Sort levels alphabetically using qsort
+  qsort(levels, count, 256, compare_strings);
+
   return count;
 }
 
@@ -172,14 +182,14 @@ LEVEL *ShowLevelSelector(WIN *W) {
     }
 
     if (scroll_offset + visible_items < num_levels - 1) {
-      // Draw an empty line to clear previous content and show '... more levels' indicator
+      // Draw an empty line to clear previous content and show '... more levels'
       mvwhline(win, start_y + visible_items, 1, ' ', W->cols - 2);
       mvwprintw(win, start_y + visible_items, column_start,
                 "... %d more levels\t\t\t",
                 num_levels - (scroll_offset + visible_items));
     }
 
-    // Instructions
+    // Display instructions
     mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
               instructions);
 
