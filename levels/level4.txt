@@ -1,0 +1,27 @@
+[CONFIG]
+TIME=30
+LIFES=3
+WIDTH=20
+HEIGHT=20
+START_X=0
+START_Y=0
+WIN_SCORE=15
+
+[TOTEMS]
+# (x,y) points
+(10,10) 15
+(15,5) 10
+
+[OBSTACLES]
+# (x1,y1) (x2,y2)
+(5,5) (7,7)
+(12,12) (14,14)
+
+[ENEMIES]
+# type          bounds          start speed [extra_params]
+PATROL (0,10) (19,10) (0,10) 2
+PATROL (10,0) (10,19) (10,0) 2
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y) direction interval 
+SPIKE (8,8) UP 1.5

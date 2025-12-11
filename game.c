@@ -1,5 +1,4 @@
 #include "game.h"
-#include "level.h"
 #include "window.h"
 #include <math.h>
 #include <stdio.h>
@@ -10,25 +9,19 @@
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
-GAMESTATE *InitGame(void) {
+GAMESTATE *InitGame(LEVEL *level) {
   GAMESTATE *state = (GAMESTATE *)malloc(sizeof(GAMESTATE));
 
   if (state == NULL) {
     fprintf(stderr, "Error allocating memory for game state\n");
+    free(level);
     exit(EXIT_FAILURE);
   }
 
   // Seed random number generator for enemy movement
   srand((unsigned int)time(NULL));
 
-  state->level = LoadLevel(LEVEL_FILE);
-
-  if (state->level == NULL) {
-    free(state);
-    fprintf(stderr, "Error loading level file: %s\n", LEVEL_FILE);
-    exit(EXIT_FAILURE);
-  }
-
+  state->level = level;
   state->score = 0;
   state->time_elapsed = 0;
   state->frames_elapsed = 0;

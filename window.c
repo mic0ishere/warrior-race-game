@@ -16,6 +16,7 @@ WINDOW *InitScreen(void) {
   }
 
   start_color();
+  init_pair(DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
   init_pair(PLAY_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(STAT_COLOR, COLOR_YELLOW + 8, COLOR_BLUE);
   init_pair(DEBUG_COLOR, COLOR_RED + 8, COLOR_BLACK);
@@ -114,7 +115,7 @@ int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
   return 0;
 }
 
-void CleanupWindows(WINDOW *screenwin, WINDOWS *windows) {
+void CleanupWindows(WINDOWS *windows) {
   if (windows->playwin) {
     delwin(windows->playwin->window);
     free(windows->playwin);
@@ -127,11 +128,15 @@ void CleanupWindows(WINDOW *screenwin, WINDOWS *windows) {
     delwin(windows->debugwin->window);
     free(windows->debugwin);
   }
-  if (screenwin) {
-    delwin(screenwin);
+}
+
+void CleanupWin(WIN *W) {
+  if (W) {
+    wclear(W->window);
+    wrefresh(W->window);
+    delwin(W->window);
+    free(W);
   }
-  endwin();
-  refresh();
 }
 
 void EndGame(WIN *W, char *msg, int color_pair) {
