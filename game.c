@@ -10,7 +10,7 @@
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
-GAMESTATE *InitGame(void) {
+GAMESTATE *InitGame(const char *level_filename) {
   GAMESTATE *state = (GAMESTATE *)malloc(sizeof(GAMESTATE));
 
   if (state == NULL) {
@@ -21,11 +21,11 @@ GAMESTATE *InitGame(void) {
   // Seed random number generator for enemy movement
   srand((unsigned int)time(NULL));
 
-  state->level = LoadLevel(LEVEL_FILE);
+  state->level = LoadLevel(level_filename);
 
   if (state->level == NULL) {
     free(state);
-    fprintf(stderr, "Error loading level file: %s\n", LEVEL_FILE);
+    fprintf(stderr, "Error loading level file: %s\n", level_filename);
     exit(EXIT_FAILURE);
   }
 

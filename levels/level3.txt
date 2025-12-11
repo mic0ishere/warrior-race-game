@@ -1,0 +1,39 @@
+[CONFIG]
+TIME=90
+LIFES=2
+WIDTH=35
+HEIGHT=35
+START_X=0
+START_Y=0
+WIN_SCORE=40
+
+[TOTEMS]
+# (x,y) points
+(8,8) 10
+(17,17) 15
+(30,30) 20
+(25,10) 10
+
+[OBSTACLES]
+# (x1,y1) (x2,y2)
+(5,5) (10,6)
+(0,18) (7,19)
+(12,18) (35,19)
+(20,10) (22,15)
+
+[ENEMIES]
+# type          bounds          start speed [extra_params]
+PATROL (0,12) (12,12) (0,12) 1
+PATROL (25,25) (25,30) (25,25) 3
+CHASER (20,0) (34,15) (30,5) 2 10
+TELEPORTER (0,25) (10,34) (0,28) 1
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y) direction interval 
+SPIKE (15,8) UP 3
+SPIKE (16,8) UP 3
+SPIKE (17,8) UP 3
+
+# FIREJET (x,y) direction interval length
+FIREJET (8,15) RIGHT 2 8
+FIREJET (28,20) LEFT 2.5 6
