@@ -8,12 +8,7 @@
 
 // Main menu items
 static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
-                                              "Exit"};
-
-// Comparison function for qsort
-static int compare_strings(const void *a, const void *b) {
-  return strcmp((const char *)a, (const char *)b);
-}
+                                             "Exit"};
 
 int ShowMainMenu(WINDOW *screenwin) {
   int highlight = 0;
@@ -28,13 +23,14 @@ int ShowMainMenu(WINDOW *screenwin) {
   while (1) {
     // Get actual terminal dimensions
     getmaxyx(screenwin, max_rows, max_cols);
-    
+
     wclear(screenwin);
     box(screenwin, 0, 0);
 
     // Title
     mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== WARRIOR RACE ===");
-    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Terminal Roguelike Adventure");
+    mvwprintw(screenwin, 3, (max_cols - 30) / 2,
+              "Terminal Roguelike Adventure");
 
     // Menu items
     for (int i = 0; i < MENU_ITEMS; i++) {
@@ -49,30 +45,25 @@ int ShowMainMenu(WINDOW *screenwin) {
 
     // Instructions
     mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
-              "Use arrow keys or w/s to navigate");
-    mvwprintw(screenwin, max_rows - 2, (max_cols - 30) / 2, "Press Enter to select");
+              "Use [W/S] to navigate");
+    mvwprintw(screenwin, max_rows - 2, (max_cols - 40) / 2,
+              "Press spacebar to select");
 
     wrefresh(screenwin);
 
     c = wgetch(screenwin);
 
     switch (c) {
-    case KEY_UP:
-    case 'w':
-    case 'W':
+    case UP:
       highlight = (highlight - 1 + MENU_ITEMS) % MENU_ITEMS;
       break;
-    case KEY_DOWN:
-    case 's':
-    case 'S':
+    case DOWN:
       highlight = (highlight + 1) % MENU_ITEMS;
       break;
-    case 10: // Enter key
-    case KEY_ENTER:
+    case CONFIRM:
       choice = highlight;
       return choice;
-    case 'q':
-    case 'Q':
+    case QUIT:
       return MENU_EXIT;
     default:
       break;
@@ -102,9 +93,6 @@ int ScanLevels(char levels[][256]) {
   }
 
   closedir(dir);
-
-  // Sort levels alphabetically using qsort
-  qsort(levels, count, 256, compare_strings);
 
   return count;
 }
@@ -136,20 +124,19 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
   int highlight = 0;
   int c;
 
-  curs_set(0);
-  keypad(screenwin, TRUE);
   nodelay(screenwin, FALSE);
 
   while (1) {
     // Get actual terminal dimensions in case of resize
     getmaxyx(screenwin, max_rows, max_cols);
-    
+
     wclear(screenwin);
     box(screenwin, 0, 0);
 
     // Title
     mvwprintw(screenwin, 2, (max_cols - 20) / 2, "=== SELECT LEVEL ===");
-    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Found %d level(s)", num_levels);
+    mvwprintw(screenwin, 3, (max_cols - 30) / 2, "Found %d level(s)",
+              num_levels);
 
     // Level list
     int start_y = 6;
@@ -193,36 +180,29 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
       }
     }
 
-    // Instructions
     mvwprintw(screenwin, max_rows - 3, (max_cols - 40) / 2,
-              "Use arrow keys or w/s to navigate");
-    mvwprintw(screenwin, max_rows - 2, (max_cols - 30) / 2,
-              "Enter to select, Q to cancel");
+              "Use [W/S] to navigate");
+    mvwprintw(screenwin, max_rows - 2, (max_cols - 40) / 2,
+              "Press spacebar to select, Q to cancel");
 
     wrefresh(screenwin);
 
     c = wgetch(screenwin);
 
     switch (c) {
-    case KEY_UP:
-    case 'w':
-    case 'W':
+    case UP:
       highlight = (highlight - 1 + num_levels) % num_levels;
       break;
-    case KEY_DOWN:
-    case 's':
-    case 'S':
+    case DOWN:
       highlight = (highlight + 1) % num_levels;
       break;
-    case 10: // Enter key
-    case KEY_ENTER:
+    case CONFIRM:
       // Safe string copy - ensure null termination
       strncpy(result.filename, levels[highlight], sizeof(result.filename) - 1);
       result.filename[sizeof(result.filename) - 1] = '\0';
       result.selected = 1;
       return result;
-    case 'q':
-    case 'Q':
+    case QUIT:
       result.selected = 0;
       return result;
     default:
@@ -235,10 +215,10 @@ LEVEL_SELECT_RESULT ShowLevelSelector(WINDOW *screenwin) {
 
 void ShowRanking(WINDOW *screenwin) {
   int max_rows, max_cols;
-  
+
   // Get actual terminal dimensions
   getmaxyx(screenwin, max_rows, max_cols);
-  
+
   wclear(screenwin);
   box(screenwin, 0, 0);
 
@@ -247,7 +227,8 @@ void ShowRanking(WINDOW *screenwin) {
             "Ranking system coming soon!");
   mvwprintw(screenwin, max_rows / 2 + 2, (max_cols - 35) / 2,
             "Check back in the next update.");
-  mvwprintw(screenwin, max_rows - 2, (max_cols - 20) / 2, "Press any key to return");
+  mvwprintw(screenwin, max_rows - 2, (max_cols - 20) / 2,
+            "Press any key to return");
 
   wrefresh(screenwin);
   nodelay(screenwin, FALSE);

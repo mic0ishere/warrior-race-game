@@ -10,6 +10,7 @@
 #define LEFT 'a'
 #define RIGHT 'd'
 #define PAUSE 'p'
+#define CONFIRM ' '
 #define NOKEY ERR
 
 // Timing and speed

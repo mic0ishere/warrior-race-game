@@ -114,7 +114,7 @@ int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
   return 0;
 }
 
-void CleanupWindows(WINDOW *screenwin, WINDOWS *windows) {
+void CleanupWindows(WINDOWS *windows) {
   if (windows->playwin) {
     delwin(windows->playwin->window);
     free(windows->playwin);
@@ -127,11 +127,6 @@ void CleanupWindows(WINDOW *screenwin, WINDOWS *windows) {
     delwin(windows->debugwin->window);
     free(windows->debugwin);
   }
-  if (screenwin) {
-    delwin(screenwin);
-  }
-  endwin();
-  refresh();
 }
 
 void EndGame(WIN *W, char *msg, int color_pair) {

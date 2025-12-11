@@ -53,13 +53,14 @@ int main(void) {
 
       FreeLevel(state->level);
       free(state);
-      CleanupWindows(screenwin, &windows);
-
-      // Re-initialize screen for menu
-      screenwin = InitScreen();
+      CleanupWindows(&windows);
     }
   }
 
+  delwin(screenwin);
   endwin();
+  refresh();
+  endwin();
+  
   return 0;
 }
