@@ -63,7 +63,6 @@ int main(void) {
   delwin(screenwin);
   endwin();
   refresh();
-  endwin();
 
   return 0;
 }
