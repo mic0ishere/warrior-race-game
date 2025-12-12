@@ -16,6 +16,7 @@
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds
+#define TELEPORTER_WARNING_FRAMES (int)(FRAMES_PER_SECOND / 1.5) // 0.66 second warning 
 #define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
 
 // Color pair identifiers
@@ -31,6 +32,9 @@
 #define PLAYER_COLOR 9
 #define SPIKE_COLOR 10
 #define FIREJET_COLOR 11
+#define TELEPORTER_WARNING_COLOR 12
+#define CHASER_SLEEPING_COLOR 13
+#define CHASER_ANGRY_COLOR 14
 
 // Window dimensions and position
 #define BORDER 1
@@ -138,6 +142,7 @@ typedef struct {
   int speed;
   int last_teleport_frame; // For teleporter enemies
   int chase_radius;        // For chaser enemies - chase range
+  int is_chasing;          // For chaser enemies - 1 if chasing, 0 if sleeping
 } ENEMY;
 
 // Level structure

@@ -66,6 +66,11 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
         obs->pos.y == wanted_pos.y && obs->direction == player_dir) {
       return FALSE;
     }
+
+    if (obs->type == AGGRESSIVE_FIREJET && obs->pos.x == wanted_pos.x &&
+        obs->pos.y == wanted_pos.y) {
+      return FALSE;
+    }
   }
 
   return CheckWithinBounds(
@@ -166,6 +171,7 @@ void MoveEnemies(GAMESTATE *state) {
 
       // Only chase if player is within chase radius ("can be seen")
       if (distance <= enemy->chase_radius) {
+        enemy->is_chasing = TRUE;
         // Move towards player (simple AI: one step at a time)
         if (abs(dx) > abs(dy)) {
           wanted_pos.x += (dx > 0) ? 1 : -1;
@@ -178,12 +184,14 @@ void MoveEnemies(GAMESTATE *state) {
             CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
           enemy->current_pos = wanted_pos;
         }
+      } else {
+        enemy->is_chasing = FALSE;
       }
 
     } else if (enemy->type == ENEMY_TELEPORTER) {
       // Teleport every 3 seconds
       if (state->frames_elapsed - enemy->last_teleport_frame >=
-          TELEPORTER_INTERVAL_FRAMES) {
+          (TELEPORTER_INTERVAL_FRAMES / enemy->speed)) {
         int range_x = enemy->pos2.x - enemy->pos1.x + 1;
         int range_y = enemy->pos2.y - enemy->pos1.y + 1;
 
@@ -191,13 +199,13 @@ void MoveEnemies(GAMESTATE *state) {
         wanted_pos.x = enemy->pos1.x + (rand() % range_x);
         wanted_pos.y = enemy->pos1.y + (rand() % range_y);
 
-        if (CheckCollision(state, wanted_pos)) {
+        int is_colliding = !CheckCollision(state, wanted_pos);
+        int is_at_start_pos = (wanted_pos.x == state->level->start_pos.x &&
+                               wanted_pos.y == state->level->start_pos.y);
+
+        if (!is_at_start_pos && !is_colliding) {
           enemy->current_pos = wanted_pos;
           enemy->last_teleport_frame = state->frames_elapsed;
-        } else {
-          fprintf(stderr,
-                  "Warning: Teleporter enemy %d attempted invalid teleport.\n",
-                  i);
         }
       }
     }

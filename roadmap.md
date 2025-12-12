@@ -2,6 +2,8 @@
 - level selector -> create multiple levels, select at start ✅
 - menu system -> new game / view ranking / exit ✅
 - ranking system -> calculate final score, save to file, display top scores ‼️
+ - add more playable levels with increasing difficulty ‼️
+
 
 ## gameplay
 - aggressive obstacles ✅
@@ -14,10 +16,9 @@
     - patrollers -> follow a fixed path
     - teleporters -> randomly teleport by few blocks every few seconds
 
-- additional enhancements ‼️
+- additional enhancements ✅
     - for 10 frames before enemy teleporting, flash his color or show some indicator
     - when chaser enemy cannot see the player, change his color to indicate sleeping state
-    - add more playable levels with increasing difficulty
 
 - power-ups
     - shield -> ignore next enemy collision
