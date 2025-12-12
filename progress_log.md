@@ -52,7 +52,7 @@
 
 - IDEA: After heavy AI-assisted development, a proper code review would be beneficial to ensure code quality and maintainability. I would suggest asking Copilot to identify potential issues before a thorough manual review.
 
-### 12-12-2025
+### 11-12-2025
 
 - Implemented menu system with new game, view ranking, and exit options.
   - Used Copilot (Claude Sonnet 4.5) to help with game menu addition.
@@ -67,3 +67,11 @@
   - Copilot assisted with scrolling logic and level loading.
   - The "design" it suggested wasn't looking good, so I reimplemented the layout manually for better aesthetics.
   - Again, I refactored some of the code for clarity.
+
+### 12-12-2025
+
+- Enhanced enemy behavior:
+  - For teleporters, added a flashing indicator before teleporting.
+  - For chasers, implemented a sleeping state, where they display in a different color when the player is outside of their vision.
+  - Copilot provided good initial implementations, but some adjustments were needed for timing and visual effects.
+  - While testing, I have identified and fixed existing bugs in the entity collission and movement logic (for teleporters the speed variable had no effect, player could walk into the source of firejet obstacle and teleporters could teleport onto player's starting position).
