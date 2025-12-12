@@ -199,13 +199,13 @@ void MoveEnemies(GAMESTATE *state) {
         wanted_pos.x = enemy->pos1.x + (rand() % range_x);
         wanted_pos.y = enemy->pos1.y + (rand() % range_y);
 
-        if (CheckCollision(state, wanted_pos)) {
+        int is_colliding = !CheckCollision(state, wanted_pos);
+        int is_at_start_pos = (wanted_pos.x == state->level->start_pos.x &&
+                               wanted_pos.y == state->level->start_pos.y);
+
+        if (!is_at_start_pos && !is_colliding) {
           enemy->current_pos = wanted_pos;
           enemy->last_teleport_frame = state->frames_elapsed;
-        } else {
-          fprintf(stderr,
-                  "Warning: Teleporter enemy %d attempted invalid teleport.\n",
-                  i);
         }
       }
     }

@@ -281,18 +281,16 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
 
       if (frames_until_teleport >= 0 &&
           frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
+        // Alternate between warning color and normal enemy color (3:2 ratio)
         enemy_color = frames_until_teleport % 5 >= 2 ? TELEPORTER_WARNING_COLOR
                                                      : ENEMY_COLOR;
       }
     } else if (enemy->type == ENEMY_CHASER) {
       // Change color based on chase state
-      if (enemy->is_chasing) {
-        enemy_color = CHASER_ANGRY_COLOR;
-      } else {
-        enemy_color = CHASER_SLEEPING_COLOR;
-      }
+      enemy_color =
+          enemy->is_chasing ? CHASER_ANGRY_COLOR : CHASER_SLEEPING_COLOR;
     }
-    
+
     SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state,
                     enemy_color);
   }
