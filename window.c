@@ -277,7 +277,7 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
       int frames_since_last_teleport = state->frames_elapsed - enemy->last_teleport_frame;
       int frames_until_teleport = TELEPORTER_INTERVAL_FRAMES - frames_since_last_teleport;
       
-      if (frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
+      if (frames_until_teleport >= 0 && frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
         enemy_color = TELEPORTER_WARNING_COLOR;
       }
     } else if (enemy->type == ENEMY_CHASER) {
