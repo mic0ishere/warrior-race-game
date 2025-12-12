@@ -66,6 +66,11 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
         obs->pos.y == wanted_pos.y && obs->direction == player_dir) {
       return FALSE;
     }
+
+    if (obs->type == AGGRESSIVE_FIREJET && obs->pos.x == wanted_pos.x &&
+        obs->pos.y == wanted_pos.y) {
+      return FALSE;
+    }
   }
 
   return CheckWithinBounds(
