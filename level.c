@@ -37,6 +37,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   // Initialize new fields
   enemy.last_teleport_frame = 0;
   enemy.chase_radius = 10; // Default chase radius
+  enemy.is_chasing = FALSE;
   enemy.direction = rand() % 2 == 0 ? DIR_FORWARD : DIR_BACKWARD;
 
   sscanf(line, "%31s (%d,%d) (%d,%d) (%d,%d) %d %d", type_str, &enemy.pos1.x,

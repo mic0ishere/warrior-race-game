@@ -166,6 +166,7 @@ void MoveEnemies(GAMESTATE *state) {
 
       // Only chase if player is within chase radius ("can be seen")
       if (distance <= enemy->chase_radius) {
+        enemy->is_chasing = TRUE;
         // Move towards player (simple AI: one step at a time)
         if (abs(dx) > abs(dy)) {
           wanted_pos.x += (dx > 0) ? 1 : -1;
@@ -178,6 +179,8 @@ void MoveEnemies(GAMESTATE *state) {
             CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
           enemy->current_pos = wanted_pos;
         }
+      } else {
+        enemy->is_chasing = FALSE;
       }
 
     } else if (enemy->type == ENEMY_TELEPORTER) {
