@@ -28,7 +28,7 @@ WINDOW *InitScreen(void) {
   init_pair(PLAYER_COLOR, COLOR_BLACK, COLOR_WHITE);
   init_pair(SPIKE_COLOR, COLOR_WHITE + 8, COLOR_MAGENTA);
   init_pair(FIREJET_COLOR, COLOR_WHITE + 8, COLOR_RED + 8);
-  init_pair(TELEPORTER_WARNING_COLOR, COLOR_BLACK, COLOR_YELLOW);
+  init_pair(TELEPORTER_WARNING_COLOR, COLOR_WHITE + 8, COLOR_MAGENTA + 8);
   init_pair(CHASER_SLEEPING_COLOR, COLOR_WHITE, COLOR_BLUE);
   init_pair(CHASER_ANGRY_COLOR, COLOR_WHITE + 8, COLOR_RED + 8);
 
@@ -270,15 +270,19 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     int enemy_color = ENEMY_COLOR;
-    
+
     // Determine color based on enemy type and state
     if (enemy->type == ENEMY_TELEPORTER) {
       // Flash warning color when about to teleport
-      int frames_since_last_teleport = state->frames_elapsed - enemy->last_teleport_frame;
-      int frames_until_teleport = TELEPORTER_INTERVAL_FRAMES - frames_since_last_teleport;
-      
-      if (frames_until_teleport >= 0 && frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
-        enemy_color = TELEPORTER_WARNING_COLOR;
+      int frames_since_last_teleport =
+          state->frames_elapsed - enemy->last_teleport_frame;
+      int frames_until_teleport = (TELEPORTER_INTERVAL_FRAMES / enemy->speed) -
+                                  frames_since_last_teleport;
+
+      if (frames_until_teleport >= 0 &&
+          frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
+        enemy_color = frames_until_teleport % 5 >= 2 ? TELEPORTER_WARNING_COLOR
+                                                     : ENEMY_COLOR;
       }
     } else if (enemy->type == ENEMY_CHASER) {
       // Change color based on chase state

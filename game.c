@@ -191,7 +191,7 @@ void MoveEnemies(GAMESTATE *state) {
     } else if (enemy->type == ENEMY_TELEPORTER) {
       // Teleport every 3 seconds
       if (state->frames_elapsed - enemy->last_teleport_frame >=
-          TELEPORTER_INTERVAL_FRAMES) {
+          (TELEPORTER_INTERVAL_FRAMES / enemy->speed)) {
         int range_x = enemy->pos2.x - enemy->pos1.x + 1;
         int range_y = enemy->pos2.y - enemy->pos1.y + 1;
 

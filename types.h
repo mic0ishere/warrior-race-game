@@ -16,7 +16,7 @@
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds
-#define TELEPORTER_WARNING_FRAMES (FRAMES_PER_SECOND / 2)   // 0.5 seconds warning
+#define TELEPORTER_WARNING_FRAMES (int)(FRAMES_PER_SECOND / 1.5) // 0.66 second warning 
 #define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
 
 // Color pair identifiers
