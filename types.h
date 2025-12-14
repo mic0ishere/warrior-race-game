@@ -14,6 +14,12 @@
 #define CONFIRM ' '
 #define NOKEY ERR
 
+// Ranking and scoring
+#define FINAL_SCORE_LIFE_BONUS 20
+#define FINAL_SCORE_TIME_BONUS 1
+#define RANKINGS_FILE "rankings.dat"
+#define MAX_TOTAL_RANKINGS 1000
+
 // Timing and speed
 #define FRAMES_PER_SECOND 20
 #define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds

@@ -3,16 +3,6 @@
 
 #include "types.h"
 
-// Ranking file path
-#define RANKINGS_FILE "rankings.dat"
-
-// Score calculation bonuses
-#define LIFE_BONUS 50
-#define TIME_BONUS 2
-
-// Maximum total rankings to load
-#define MAX_TOTAL_RANKINGS 1000
-
 // Calculate final score based on game state
 int CalculateFinalScore(GAMESTATE *state);
 
