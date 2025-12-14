@@ -18,12 +18,10 @@ int CalculateFinalScore(GAMESTATE *state) {
 }
 
 int SaveRanking(const char *level_name, GAMESTATE *state) {
+  // Try to open for appending, create if doesn't exist
   FILE *file = fopen(RANKINGS_FILE, "ab");
   if (!file) {
-    file = fopen(RANKINGS_FILE, "wb");
-    if (!file) {
-      return -1;
-    }
+    return -1;
   }
   
   RANKING_ENTRY entry;
@@ -72,8 +70,8 @@ static int compare_scores(const void *a, const void *b) {
 }
 
 int GetLevelRankings(const char *level_name, RANKING_ENTRY *rankings, int max_entries) {
-  RANKING_ENTRY all_rankings[1000];
-  int total_count = LoadRankings(all_rankings, 1000);
+  RANKING_ENTRY all_rankings[MAX_TOTAL_RANKINGS];
+  int total_count = LoadRankings(all_rankings, MAX_TOTAL_RANKINGS);
   
   int level_count = 0;
   for (int i = 0; i < total_count && level_count < max_entries; i++) {

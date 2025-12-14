@@ -120,6 +120,7 @@ char *GetLevelName(const char *filename) {
   }
 
   // Safe string copy, leaving room for null terminator
+  // Note: Returns pointer to static buffer - does not need to be freed
   static char level_name[256];
   strncpy(level_name, basename, sizeof(level_name) - 1);
   level_name[sizeof(level_name) - 1] = '\0';
