@@ -5,15 +5,12 @@
 #include <time.h>
 
 int CalculateFinalScore(GAMESTATE *state) {
-  int time_left = state->level->time_limit - state->time_elapsed;
-  if (time_left < 0) {
-    time_left = 0;
-  }
-  
-  int final_score = state->score + 
-                    (state->lifes_left * LIFE_BONUS) + 
-                    (time_left * TIME_BONUS);
-  
+  int time_left = MAX(0, state->level->time_limit - state->time_elapsed);
+
+  int final_score = state->score +
+                    (state->lifes_left * FINAL_SCORE_LIFE_BONUS) +
+                    (time_left * FINAL_SCORE_TIME_BONUS);
+
   return final_score;
 }
 
