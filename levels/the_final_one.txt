@@ -1,0 +1,86 @@
+[CONFIG]
+TIME=75
+LIFES=5
+WIDTH=30
+HEIGHT=20
+START_X=15
+START_Y=5
+WIN_SCORE=80
+
+[TOTEMS]
+# (x,y) points
+(0,0) 15
+(4,4) 20
+(7,11) 15
+(25,12) 10
+(19,13) 20
+
+[OBSTACLES]
+# (x1,y1) (x2,y2)
+(0,1) (20,2)
+(1,9) (9,10)
+(8,11) (9,18)
+(16,9) (29,9)
+(16,11) (16,18)
+(17,11) (22,11)
+(24,11) (29,11)
+(22,12) (22,14)
+(22,15) (28,15)
+(24,13) (28,13)
+(24,12) (24,12)
+(27,18) (29,19)
+(17,15) (17,18)
+(20,15) (21,18)
+
+[ENEMIES]
+# type          bounds          start speed [extra_params]
+# PATROL        (x1,y1) (x2,y2) (x,y) 1-5   
+# RANDOM        (x1,y1) (x2,y2) (x,y) 1-5   
+# CHASER        (x1,y1) (x2,y2) (x,y) 1-5   chase_radius
+# TELEPORTER    (x1,y1) (x2,y2) (x,y) 1-5   
+
+PATROL (17,3) (17,8) (17,5) 2
+RANDOM (19,4) (28,8) (24,6) 3
+
+PATROL (24,16) (24,19) (24,16) 3
+PATROL (25,16) (25,19) (25,19) 2
+RANDOM (17,12) (21,14) (19,4) 4
+
+TELEPORTER (0,11) (7,18) (5,15) 5
+TELEPORTER (0,11) (7,15) (5,10) 3
+
+# PATROL (20,20) (20,25) (20,20) 3
+# PATROL (0,12) (29,12) (0,12) 2
+# TELEPORTER (0,20) (10,29) (0,25) 1
+
+CHASER (0,3) (8,8) (6,4) 1 8
+CHASER (0,3) (8,8) (5,7) 3 6
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y) direction interval 
+# interval: seconds between emissions
+# direction: UP, DOWN, LEFT, RIGHT
+SPIKE (6,0) UP 2
+SPIKE (7,0) UP 2
+SPIKE (8,0) UP 2
+SPIKE (11,0) DOWN 3
+SPIKE (12,0) DOWN 3
+SPIKE (13,0) DOWN 3
+SPIKE (14,0) DOWN 3
+
+SPIKE (27,12) DOWN 1
+SPIKE (28,12) DOWN 1
+
+SPIKE (18,16) RIGHT 2
+SPIKE (19,16) LEFT 2
+SPIKE (18,17) RIGHT 2
+SPIKE (19,17) LEFT 2
+
+SPIKE (16,19) RIGHT 2
+
+# FIREJET (x,y) direction interval length
+# length: how far fire travels
+FIREJET (29,1) LEFT 2 8
+FIREJET (29,2) LEFT 2 8
+FIREJET (0,19) RIGHT 3 10
+FIREJET (29,10) LEFT 1 7
