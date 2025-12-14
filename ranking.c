@@ -49,6 +49,9 @@ int SaveRanking(const char *level_name, GAMESTATE *state) {
     all_rankings[MAX_TOTAL_RANKINGS - 1] = new_entry;
   }
   
+  // Allocate temporary array for level entries outside the loop to avoid stack overflow
+  RANKING_ENTRY level_entries[MAX_TOTAL_RANKINGS];
+  
   // Count entries per level and keep only top 10 for each level
   RANKING_ENTRY filtered_rankings[MAX_TOTAL_RANKINGS];
   int filtered_count = 0;
@@ -70,7 +73,6 @@ int SaveRanking(const char *level_name, GAMESTATE *state) {
     }
     
     // Collect all entries for this level
-    RANKING_ENTRY level_entries[MAX_TOTAL_RANKINGS];
     int level_count = 0;
     for (int j = 0; j < total_count; j++) {
       if (strcmp(all_rankings[j].level_name, current_level) == 0) {
