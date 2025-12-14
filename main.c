@@ -52,7 +52,7 @@ int main(void) {
       FinishGame(windows.playwin, state);
 
       CleanWin(windows.statwin, BORDER);
-      sleep(2);
+      sleep(5);
 
       FreeLevel(state->level);
       free(state);
