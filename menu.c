@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "level.h"
+#include "ranking.h"
 #include <dirent.h>
 #include <ncurses.h>
 #include <stdio.h>
@@ -222,20 +223,97 @@ LEVEL *ShowLevelSelector(WIN *W) {
 
 void ShowRanking(WIN *W) {
   WINDOW *win = W->window;
-
-  wclear(win);
-  box(win, 0, 0);
-
-  const char *title = "=== GAME RANKING ===";
-  mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
-
-  const char *instructions = "Press any key to return";
-  mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
-            instructions);
-
-  wrefresh(win);
-
-  // Wait for user input
+  
+  // Scan available levels
+  char levels[MAX_LEVELS][256];
+  int num_levels = ScanLevels(levels);
+  
+  if (num_levels == 0) {
+    wclear(win);
+    box(win, 0, 0);
+    const char *msg = "No levels found";
+    mvwprintw(win, W->rows / 2, (W->cols - strlen(msg)) / 2, "%s", msg);
+    wrefresh(win);
+    nodelay(win, FALSE);
+    wgetch(win);
+    return;
+  }
+  
+  int current_level = 0;
+  int c;
+  
   nodelay(win, FALSE);
-  wgetch(win);
+  
+  while (1) {
+    wclear(win);
+    box(win, 0, 0);
+    
+    const char *title = "=== GAME RANKING ===";
+    mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
+    
+    // Display current level name
+    char *level_name = GetLevelName(levels[current_level]);
+    char level_title[100];
+    snprintf(level_title, sizeof(level_title), "Level: %s", level_name);
+    mvwprintw(win, 4, (W->cols - strlen(level_title)) / 2, "%s", level_title);
+    
+    // Load rankings for current level
+    RANKING_ENTRY rankings[MAX_RANKINGS_PER_LEVEL];
+    int num_rankings = GetLevelRankings(level_name, rankings, MAX_RANKINGS_PER_LEVEL);
+    
+    if (num_rankings == 0) {
+      const char *no_rankings = "No rankings yet for this level";
+      mvwprintw(win, 8, (W->cols - strlen(no_rankings)) / 2, "%s", no_rankings);
+    } else {
+      // Display header
+      mvwprintw(win, 6, 5, "Rank  Final Score  Totems  Lives  Time Left");
+      mvwprintw(win, 7, 5, "----  -----------  ------  -----  ---------");
+      
+      // Display rankings
+      for (int i = 0; i < num_rankings && i < 10; i++) {
+        mvwprintw(win, 8 + i, 5, "#%-3d  %11d  %6d  %5d  %9d",
+                  i + 1,
+                  rankings[i].final_score,
+                  rankings[i].totems_score,
+                  rankings[i].lives_left,
+                  rankings[i].time_left);
+      }
+      
+      // Show formula
+      char formula[100];
+      snprintf(formula, sizeof(formula), 
+               "Formula: Totems + (Lives x %d) + (Time x %d)", 
+               LIFE_BONUS, TIME_BONUS);
+      mvwprintw(win, W->rows - 5, (W->cols - strlen(formula)) / 2, "%s", formula);
+    }
+    
+    // Navigation instructions
+    if (num_levels > 1) {
+      const char *nav = "[A/D] or [LEFT/RIGHT] to switch levels";
+      mvwprintw(win, W->rows - 3, (W->cols - strlen(nav)) / 2, "%s", nav);
+    }
+    
+    const char *back_instr = "[Q] or [SPACE] to return to menu";
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(back_instr)) / 2, "%s", back_instr);
+    
+    wrefresh(win);
+    
+    c = wgetch(win);
+    
+    switch (c) {
+    case LEFT:  // 'a'
+    case 'A':
+      current_level = (current_level - 1 + num_levels) % num_levels;
+      break;
+    case RIGHT:  // 'd'
+    case 'D':
+      current_level = (current_level + 1) % num_levels;
+      break;
+    case QUIT:
+    case CONFIRM:
+      return;
+    default:
+      break;
+    }
+  }
 }

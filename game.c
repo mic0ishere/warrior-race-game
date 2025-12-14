@@ -1,5 +1,7 @@
 #include "game.h"
 #include "window.h"
+#include "ranking.h"
+#include "menu.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -278,6 +280,11 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
 }
 
 void FinishGame(WIN *playwin, GAMESTATE *state) {
+  // Save ranking if player won
+  if (state->status == WIN_POINTS) {
+    SaveRanking(state->level->level_name, state);
+  }
+
   switch (state->status) {
   case GAME_TIMEOUT:
     EndGame(playwin, "Time's up!", END_LOSE_COLOR);
@@ -296,10 +303,29 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
     break;
   }
 
-  char end_msg[COLS];
-  snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
-  mvwprintw(playwin->window, playwin->rows / 2 + 1,
-            (playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
+  // Display score breakdown for winning games
+  if (state->status == WIN_POINTS) {
+    int final_score = CalculateFinalScore(state);
+    int time_left = state->level->time_limit - state->time_elapsed;
+    if (time_left < 0) time_left = 0;
+    
+    char score_msg[COLS];
+    snprintf(score_msg, sizeof(score_msg), "Totems: %d | Lives: %d x %d | Time: %d x %d",
+             state->score, state->lifes_left, LIFE_BONUS, time_left, TIME_BONUS);
+    mvwprintw(playwin->window, playwin->rows / 2 + 1,
+              (playwin->cols - strlen(score_msg)) / 2, "%s", score_msg);
+    
+    char final_msg[COLS];
+    snprintf(final_msg, sizeof(final_msg), "Final Score: %d", final_score);
+    mvwprintw(playwin->window, playwin->rows / 2 + 2,
+              (playwin->cols - strlen(final_msg)) / 2, "%s", final_msg);
+  } else {
+    char end_msg[COLS];
+    snprintf(end_msg, sizeof(end_msg), "Your final score: %d", state->score);
+    mvwprintw(playwin->window, playwin->rows / 2 + 1,
+              (playwin->cols - strlen(end_msg)) / 2, "%s", end_msg);
+  }
+  
   wrefresh(playwin->window);
 }
 

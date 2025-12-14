@@ -7,13 +7,13 @@ LDFLAGS = -lncurses -lm
 TARGET = warrior_race
 
 # Source files
-SOURCES = main.c window.c level.c game.c menu.c
+SOURCES = main.c window.c level.c game.c menu.c ranking.c
 
 # Object files
 OBJECTS = $(SOURCES:.c=.o)
 
 # Header files
-HEADERS = types.h window.h level.h game.h menu.h
+HEADERS = types.h window.h level.h game.h menu.h ranking.h
 
 # Default target
 all: $(TARGET)
