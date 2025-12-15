@@ -2,6 +2,7 @@
 #define TYPES_H
 
 #include <ncurses.h>
+#include <time.h>
 
 // Keyboard controls
 #define QUIT 'q'
@@ -12,6 +13,12 @@
 #define PAUSE 'p'
 #define CONFIRM ' '
 #define NOKEY ERR
+
+// Ranking and scoring
+#define FINAL_SCORE_LIFE_BONUS 20
+#define FINAL_SCORE_TIME_BONUS 1
+#define RANKINGS_FILE "rankings.dat"
+#define MAX_TOTAL_RANKINGS 1000
 
 // Timing and speed
 #define FRAMES_PER_SECOND 20
@@ -62,6 +69,8 @@
 // Limits
 #define MAX_DEBUG_LEN (COLS - 3)
 #define MAX_LINE_LEN 256
+#define MAX_RANKINGS_PER_LEVEL 10
+#define MAX_LEVEL_NAME_LEN 64
 
 // Utility macros
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -147,6 +156,7 @@ typedef struct {
 
 // Level structure
 typedef struct {
+  char level_name[MAX_LEVEL_NAME_LEN];
   int time_limit;
   int lifes;
   int win_score;
@@ -190,5 +200,15 @@ typedef struct {
   WIN *statwin;
   WIN *debugwin;
 } WINDOWS;
+
+// Ranking entry structure
+typedef struct {
+  char level_name[MAX_LEVEL_NAME_LEN];
+  int final_score;
+  int totems_score;
+  int lives_left;
+  int time_left;
+  time_t timestamp;
+} RANKING_ENTRY;
 
 #endif // TYPES_H

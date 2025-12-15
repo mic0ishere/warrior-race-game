@@ -1,5 +1,7 @@
 #include "menu.h"
 #include "level.h"
+#include "ranking.h"
+#include "window.h"
 #include <dirent.h>
 #include <ncurses.h>
 #include <stdio.h>
@@ -119,6 +121,7 @@ char *GetLevelName(const char *filename) {
   }
 
   // Safe string copy, leaving room for null terminator
+  // Note: Returns pointer to static buffer - does not need to be freed
   static char level_name[256];
   strncpy(level_name, basename, sizeof(level_name) - 1);
   level_name[sizeof(level_name) - 1] = '\0';
@@ -223,19 +226,77 @@ LEVEL *ShowLevelSelector(WIN *W) {
 void ShowRanking(WIN *W) {
   WINDOW *win = W->window;
 
-  wclear(win);
-  box(win, 0, 0);
+  // Scan available levels
+  char levels[MAX_LEVELS][256];
+  int num_levels = ScanLevels(levels);
 
-  const char *title = "=== GAME RANKING ===";
-  mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
-
-  const char *instructions = "Press any key to return";
-  mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
-            instructions);
-
-  wrefresh(win);
-
-  // Wait for user input
   nodelay(win, FALSE);
-  wgetch(win);
+
+  if (num_levels == 0) {
+    CleanWin(W, 1);
+
+    const char *msg = "No levels found";
+    mvwprintw(win, W->rows / 2, (W->cols - strlen(msg)) / 2, "%s", msg);
+    wrefresh(win);
+
+    wgetch(win);
+    return;
+  }
+
+  int current_level = 0;
+  int c;
+
+  while (1) {
+    CleanWin(W, 1);
+
+    const char *title = "=== GAME RANKING ===";
+    mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
+
+    // Display current level name
+    char *level_name = GetLevelName(levels[current_level]);
+    char level_title[100];
+    snprintf(level_title, sizeof(level_title), "Level: %s", level_name);
+    mvwprintw(win, 4, (W->cols - strlen(level_title)) / 2, "%s", level_title);
+
+    // Load rankings for current level
+    RANKING_ENTRY rankings[MAX_RANKINGS_PER_LEVEL];
+    int num_rankings =
+        GetLevelRankings(level_name, rankings, MAX_RANKINGS_PER_LEVEL);
+
+    if (num_rankings == 0) {
+      const char *no_rankings = "No rankings yet for this level";
+      mvwprintw(win, 8, (W->cols - strlen(no_rankings)) / 2, "%s", no_rankings);
+    } else {
+      // Display header
+      mvwprintw(win, 6, 5, "Rank  Final Score  Totems  Lives  Time Left");
+      mvwprintw(win, 7, 5, "----  -----------  ------  -----  ---------");
+
+      // Display rankings
+      for (int i = 0; i < num_rankings && i < 10; i++) {
+        mvwprintw(win, 8 + i, 5, "#%-3d  %11d  %6d  %5d  %9d", i + 1,
+                  rankings[i].final_score, rankings[i].totems_score,
+                  rankings[i].lives_left, rankings[i].time_left);
+      }
+    }
+
+    const char *nav = "Use [A/D] to change levels, [Q] to exit";
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(nav)) / 2, "%s", nav);
+
+    wrefresh(win);
+
+    c = wgetch(win);
+
+    switch (c) {
+    case LEFT:
+      current_level = (current_level - 1 + num_levels) % num_levels;
+      break;
+    case RIGHT:
+      current_level = (current_level + 1) % num_levels;
+      break;
+    case QUIT:
+      return;
+    default:
+      break;
+    }
+  }
 }

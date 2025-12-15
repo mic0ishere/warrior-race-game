@@ -16,6 +16,7 @@
 int ShowMainMenu(WIN *screenwin);
 
 // Extract just the filename without path and extension for display
+// Returns pointer to static buffer - does not need to be freed
 char *GetLevelName(const char *filename);
 
 // Display level selector and return selected level filename

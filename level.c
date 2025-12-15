@@ -1,5 +1,6 @@
 #include "level.h"
 #include "game.h"
+#include "menu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -142,6 +143,11 @@ LEVEL *LoadLevel(const char *filename) {
   if (level == NULL) {
     return NULL;
   }
+
+  // Extract level name from filename
+  char *level_name = GetLevelName(filename);
+  strncpy(level->level_name, level_name, MAX_LEVEL_NAME_LEN - 1);
+  level->level_name[MAX_LEVEL_NAME_LEN - 1] = '\0';
 
   FILE *file = fopen(filename, "r");
   if (file == NULL) {
