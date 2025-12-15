@@ -1,9 +1,8 @@
 ## technical
 - level selector -> create multiple levels, select at start ✅
 - menu system -> new game / view ranking / exit ✅
-- ranking system -> calculate final score, save to file, display top scores ‼️
- - add more playable levels with increasing difficulty ‼️
-
+- ranking system -> calculate final score, save to file, display top scores ✅
+- instructions screen -> show game instructions screen in menu ‼️
 
 ## gameplay
 - aggressive obstacles ✅
