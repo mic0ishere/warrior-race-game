@@ -75,3 +75,22 @@
   - For chasers, implemented a sleeping state, where they display in a different color when the player is outside of their vision.
   - Copilot provided good initial implementations, but some adjustments were needed for timing and visual effects.
   - While testing, I have identified and fixed existing bugs in the entity collission and movement logic (for teleporters the speed variable had no effect, player could walk into the source of firejet obstacle and teleporters could teleport onto player's starting position).
+
+### 14-12-2025
+
+- Add a "proper" level, with a designed layout and multiple enemy types.
+  - Done it manually, as I wanted to have full control over the design and gameplay experience.
+
+### 15-12-2025
+
+- Implemented a ranking system to store high scores in a file.
+  - Manually created a formula to calculate final scores based on totems collected, time taken, and lives remaining.
+  - Used Copilot Agent (Claude Sonnet 4.5) to help with file handling and displaying rankings.
+  - After it completed initial implementation, I have provided additional instructions to make code quality and style in line with the rest of the project.
+  - AI did a good job, in the meantime I have updated screen timings and simplified ranking file saving.
+  - While testing, thought that saving rankings in a binary file is less user-friendly, so I have asked Copilot to refactor the code to use a text file instead, which it did successfully.
+
+- IDEA: Create more detailed AI prompts with step-by-step instruction to minimize the need for manual adjustments. Use other AI tools that specialize in text generation to help craft better prompts for coding AIs like Copilot. 
+  1. Initial task description <-> ChatGPT for prompt refinement
+  2. Copilot Agent for code generation <-> Iterative improvements
+  3. Manual review and refactoring
