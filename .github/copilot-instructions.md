@@ -93,3 +93,16 @@ Project has successful experience with AI agents via PR workflow. Provide:
 1. Current project phase and what's complete
 2. Which file to focus on (main.c, game.c, etc.)
 3. Specific refactoring or feature requests (avoid vague requests)
+
+## C Code Quality & Style Alignment
+- Use C89/C99-compatible syntax consistent with existing files; prefer explicit control flow over clever macros; avoid macros with hidden side effects.
+- Keep internal linkage `static` where appropriate; minimize globals and document any unavoidable global state clearly.
+- Apply defensive checks (nulls, bounds, error codes) before use; favor clear, direct logic over abstraction surprises.
+- Place all new macros, constants, enums, and type definitions in `types.h`; reuse existing definitions and forbid duplicate `#define`s or parallel types; keep struct layouts and naming aligned with types.h; no magic numbers outside types.h.
+- Match existing naming, include order, file layout, error-handling patterns, helper reuse, and memory management style already present in neighboring .c/.h files.
+- Inspect related .c/.h files before adding code to align gameplay, rendering, and system patterns; avoid new abstractions unless the codebase already uses them; ask for clarification only if conventions conflict.
+- Follow existing naming casing: functions in PascalCase, variables in lower_snake_case, macros in UPPER_SNAKE_CASE, enums/types mirroring types.h patterns; keep include order as seen in peer files (system, third-party, project headers).
+- Honor ownership rules: check allocation results, free with the matching allocator, set freed pointers to NULL when appropriate, and avoid per-frame heap allocations unless unavoidable.
+- Propagate errors using existing return codes and early-exit patterns; do not silently change function contracts or signatures without updating all callers and reflecting the intended behavior.
+- Prefer `const` for read-only parameters, pass structs by pointer when mutating, and avoid variable-length arrays or compiler-specific extensions that break portability.
+- Keep runtime constraints intact: 20 FPS game loop must not be blocked by I/O or unnecessary work; reuse existing helpers (`CheckWithinBounds`, `CheckCollision`, `LevelToScreenCoords`, `SafePrintEntity`, etc.) instead of reimplementing logic.
