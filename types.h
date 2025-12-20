@@ -228,7 +228,7 @@ typedef struct {
   int num_active_powerups;
   int has_shield;
   int shield_used;
-  POWERUP_TYPE powerup_collected;
+  int extra_life_timer;
 } GAMESTATE;
 
 // Windows group structure

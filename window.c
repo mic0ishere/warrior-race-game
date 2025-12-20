@@ -178,6 +178,11 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
         snprintf(powerup_status + status_pos, COLS - status_pos, "[Shield] ");
   }
 
+  if (state->extra_life_timer > 0) {
+    status_pos +=
+        snprintf(powerup_status + status_pos, COLS - status_pos, "[+1 Life] ");
+  }
+
   for (int i = 0; i < state->num_active_powerups; i++) {
     if (state->active_powerups[i].is_active) {
       int seconds = state->active_powerups[i].frames_remaining / FRAMES_PER_SECOND;
