@@ -35,6 +35,9 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->has_shield = FALSE;
   state->shield_protection_timer = 0;
   state->extra_life_timer = 0;
+  state->is_in_tall_grass = FALSE;
+  state->sticky_floor_counter = 0;
+  state->last_teleport_frame = -TELEPORT_PAD_COOLDOWN_FRAMES;
 
   for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
     state->active_powerups[i].is_active = FALSE;
@@ -380,6 +383,50 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
   }
 }
 
+void CheckPassiveObstacles(GAMESTATE *state) {
+  state->is_in_tall_grass = FALSE;
+  int is_on_sticky = FALSE;
+  
+  for (int i = 0; i < state->level->num_passive_obstacles; i++) {
+    PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
+    
+    if (!CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
+      continue;
+    }
+    
+    if (obs->type == PASSIVE_TELEPORT_PAD) {
+      int cooldown_elapsed = state->frames_elapsed - state->last_teleport_frame;
+      if (cooldown_elapsed >= TELEPORT_PAD_COOLDOWN_FRAMES) {
+        if (obs->teleport_target_id >= 0 && 
+            obs->teleport_target_id < state->level->num_passive_obstacles) {
+          PASSIVE_OBSTACLE *target = &state->level->passive_obstacles[obs->teleport_target_id];
+          
+          if (target->type == PASSIVE_TELEPORT_PAD) {
+            POSITION center;
+            center.x = (target->pos1.x + target->pos2.x) / 2;
+            center.y = (target->pos1.y + target->pos2.y) / 2;
+            
+            if (CheckCollision(state, center)) {
+              state->player_pos = center;
+              state->last_teleport_frame = state->frames_elapsed;
+              snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
+              return;
+            }
+          }
+        }
+      }
+    } else if (obs->type == PASSIVE_STICKY_FLOOR) {
+      is_on_sticky = TRUE;
+    } else if (obs->type == PASSIVE_TALL_GRASS) {
+      state->is_in_tall_grass = TRUE;
+    }
+  }
+  
+  if (!is_on_sticky) {
+    state->sticky_floor_counter = 0;
+  }
+}
+
 void FinishGame(WIN *playwin, GAMESTATE *state) {
   switch (state->status) {
   case GAME_TIMEOUT:
@@ -454,25 +501,48 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     wanted_pos.y = state->player_pos.y;
     
     int player_moved = FALSE;
+    int movement_attempted = FALSE;
 
     if (ch == UP) {
       wanted_pos.y++;
-      player_moved = TRUE;
+      movement_attempted = TRUE;
     } else if (ch == DOWN) {
       wanted_pos.y--;
-      player_moved = TRUE;
+      movement_attempted = TRUE;
     } else if (ch == LEFT) {
       wanted_pos.x--;
-      player_moved = TRUE;
+      movement_attempted = TRUE;
     } else if (ch == RIGHT) {
       wanted_pos.x++;
-      player_moved = TRUE;
+      movement_attempted = TRUE;
     }
-
-    if (CheckCollision(state, wanted_pos)) {
-      state->player_pos = wanted_pos;
-    } else {
-      player_moved = FALSE; // Movement was blocked, so player didn't actually move
+    
+    // Check if player is on sticky floor
+    int is_on_sticky = FALSE;
+    for (int i = 0; i < state->level->num_passive_obstacles; i++) {
+      PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
+      if (obs->type == PASSIVE_STICKY_FLOOR &&
+          CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
+        is_on_sticky = TRUE;
+        break;
+      }
+    }
+    
+    // Apply sticky floor slowdown
+    if (movement_attempted) {
+      if (is_on_sticky) {
+        state->sticky_floor_counter++;
+        if (state->sticky_floor_counter < STICKY_FLOOR_SLOWDOWN) {
+          movement_attempted = FALSE;
+        } else {
+          state->sticky_floor_counter = 0;
+        }
+      }
+      
+      if (movement_attempted && CheckCollision(state, wanted_pos)) {
+        state->player_pos = wanted_pos;
+        player_moved = TRUE;
+      }
     }
     
     // Reset shield protection timer if player moved
@@ -500,6 +570,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     MoveEnemies(state);
     CheckPlayerEnemyCollision(state);
     UpdateAggressiveObstacles(state);
+    CheckPassiveObstacles(state);
     RenderPlayArea(playwin, state);
 
     state->frames_elapsed++;

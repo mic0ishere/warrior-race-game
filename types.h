@@ -28,6 +28,9 @@
 #define DOUBLE_POINTS_DURATION_FRAMES (10 * FRAMES_PER_SECOND) // 10 seconds
 #define TIME_FREEZE_DURATION_FRAMES (5 * FRAMES_PER_SECOND) // 5 seconds
 #define MAX_ACTIVE_POWERUPS 4
+#define TELEPORT_PAD_COOLDOWN_FRAMES (2 * FRAMES_PER_SECOND) // 2 seconds cooldown
+#define STICKY_FLOOR_SLOWDOWN 2 // Movement every 2 frames
+#define TALL_GRASS_VISION_RANGE 2 // Tiles visible around player
 
 // Color pair identifiers
 #define DEFAULT_COLOR 0
@@ -49,6 +52,9 @@
 #define POWERUP_DOUBLE_COLOR 16
 #define POWERUP_LIFE_COLOR 17
 #define POWERUP_FREEZE_COLOR 18
+#define TELEPORT_PAD_COLOR 19
+#define STICKY_FLOOR_COLOR 20
+#define TALL_GRASS_COLOR 21
 
 // Window dimensions and position
 #define BORDER 1
@@ -135,6 +141,23 @@ typedef struct {
   POSITION pos2;
 } OBSTACLE;
 
+// Passive obstacle type enumeration
+typedef enum {
+  PASSIVE_TELEPORT_PAD,
+  PASSIVE_STICKY_FLOOR,
+  PASSIVE_TALL_GRASS,
+  PASSIVE_TYPE_UNKNOWN
+} PASSIVE_OBSTACLE_TYPE;
+
+// Passive obstacle structure
+typedef struct {
+  POSITION pos1;            // Top-left corner or single position
+  POSITION pos2;            // Bottom-right corner (for areas)
+  PASSIVE_OBSTACLE_TYPE type;
+  int teleport_target_id;   // For teleport pads - index of destination pad
+  int teleport_cooldown;    // Frames until next teleport allowed
+} PASSIVE_OBSTACLE;
+
 // Aggressive obstacle type enumeration
 typedef enum {
   AGGRESSIVE_SPIKE,
@@ -202,6 +225,8 @@ typedef struct {
   AGGRESSIVE_OBSTACLE *aggressive_obstacles;
   int num_powerups;
   POWERUP *powerups;
+  int num_passive_obstacles;
+  PASSIVE_OBSTACLE *passive_obstacles;
 } LEVEL;
 
 typedef enum {
@@ -229,6 +254,9 @@ typedef struct {
   int has_shield;
   int shield_protection_timer;
   int extra_life_timer;
+  int is_in_tall_grass;
+  int sticky_floor_counter;
+  int last_teleport_frame;
 } GAMESTATE;
 
 // Windows group structure

@@ -35,6 +35,9 @@ WINDOW *InitScreen(void) {
   init_pair(POWERUP_DOUBLE_COLOR, COLOR_BLACK, COLOR_YELLOW);
   init_pair(POWERUP_LIFE_COLOR, COLOR_BLACK, COLOR_GREEN + 8);
   init_pair(POWERUP_FREEZE_COLOR, COLOR_BLACK, COLOR_BLUE + 8);
+  init_pair(TELEPORT_PAD_COLOR, COLOR_BLACK, COLOR_MAGENTA);
+  init_pair(STICKY_FLOOR_COLOR, COLOR_BLACK, COLOR_YELLOW);
+  init_pair(TALL_GRASS_COLOR, COLOR_BLACK, COLOR_GREEN);
 
   noecho();
   curs_set(0);
@@ -281,6 +284,16 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
       level_y > state->level->height) {
     return;
   }
+  
+  // Apply tall grass vision restriction
+  if (state->is_in_tall_grass) {
+    int dx = abs(level_x - state->player_pos.x);
+    int dy = abs(level_y - state->player_pos.y);
+    
+    if (dx > TALL_GRASS_VISION_RANGE || dy > TALL_GRASS_VISION_RANGE) {
+      return;
+    }
+  }
 
   POSITION screen_pos;
   LevelToScreenCoords(W, level_x, level_y, state, &screen_pos.x, &screen_pos.y);
@@ -294,6 +307,37 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
 
 void RenderPlayArea(WIN *W, GAMESTATE *state) {
   CleanWin(W, 0);
+
+  // Render passive obstacles first (as floor tiles)
+  for (int i = 0; i < state->level->num_passive_obstacles; i++) {
+    PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
+    
+    const char *symbol = "?";
+    int color = DEFAULT_COLOR;
+    
+    switch (obs->type) {
+    case PASSIVE_TELEPORT_PAD:
+      symbol = "T";
+      color = TELEPORT_PAD_COLOR;
+      break;
+    case PASSIVE_STICKY_FLOOR:
+      symbol = "~";
+      color = STICKY_FLOOR_COLOR;
+      break;
+    case PASSIVE_TALL_GRASS:
+      symbol = ",";
+      color = TALL_GRASS_COLOR;
+      break;
+    default:
+      continue;
+    }
+    
+    for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
+      for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
+        SafePrintEntity(W, x, y, symbol, state, color);
+      }
+    }
+  }
 
   for (int i = 0; i < state->level->num_totems; i++) {
     TOTEM *totem = &state->level->totems[i];

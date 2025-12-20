@@ -45,6 +45,9 @@ void UpdateAggressiveObstacles(GAMESTATE *state);
 // Check if player is on fire jet's fire path
 int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos);
 
+// Check and apply passive obstacle effects
+void CheckPassiveObstacles(GAMESTATE *state);
+
 // Main game loop
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state);
 

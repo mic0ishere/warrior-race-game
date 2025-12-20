@@ -27,6 +27,7 @@ void FreeLevel(LEVEL *level) {
     free(level->enemies);
     free(level->aggressive_obstacles);
     free(level->powerups);
+    free(level->passive_obstacles);
     free(level);
   }
 }
@@ -161,6 +162,41 @@ POWERUP LoadPowerup(const char *line, int powerup_id) {
   return powerup;
 }
 
+PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
+  PASSIVE_OBSTACLE obs;
+  char type_str[32] = "";
+  
+  obs.teleport_target_id = -1;
+  obs.teleport_cooldown = 0;
+  
+  int fields = sscanf(line, "%31s (%d,%d) (%d,%d) %d", 
+                      type_str, &obs.pos1.x, &obs.pos1.y, 
+                      &obs.pos2.x, &obs.pos2.y, &obs.teleport_target_id);
+  
+  if (fields < 3) {
+    obs.type = PASSIVE_TYPE_UNKNOWN;
+    fprintf(stderr, "Warning: PassiveObstacles[%d] parse error.\n", obs_id);
+    return obs;
+  }
+  
+  if (fields < 5) {
+    obs.pos2 = obs.pos1;
+  }
+  
+  if (strcmp(type_str, "TELEPORT") == 0) {
+    obs.type = PASSIVE_TELEPORT_PAD;
+  } else if (strcmp(type_str, "STICKY") == 0) {
+    obs.type = PASSIVE_STICKY_FLOOR;
+  } else if (strcmp(type_str, "GRASS") == 0) {
+    obs.type = PASSIVE_TALL_GRASS;
+  } else {
+    obs.type = PASSIVE_TYPE_UNKNOWN;
+    fprintf(stderr, "Warning: PassiveObstacles[%d] unknown type.\n", obs_id);
+  }
+  
+  return obs;
+}
+
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
 
@@ -184,11 +220,13 @@ LEVEL *LoadLevel(const char *filename) {
   level->enemies = NULL;
   level->aggressive_obstacles = NULL;
   level->powerups = NULL;
+  level->passive_obstacles = NULL;
   level->num_totems = 0;
   level->num_obstacles = 0;
   level->num_enemies = 0;
   level->num_aggressive_obstacles = 0;
   level->num_powerups = 0;
+  level->num_passive_obstacles = 0;
 
   char line[MAX_LINE_LEN];
   char *current_section = NULL;
@@ -281,6 +319,17 @@ LEVEL *LoadLevel(const char *filename) {
       level->powerups = (POWERUP *)AddLevelEntity(
           level->powerups, sizeof(POWERUP), &level->num_powerups, &powerup);
       if (level->powerups == NULL) {
+        free(current_section);
+        FreeLevel(level);
+        fclose(file);
+        return NULL;
+      }
+    } else if (strcmp(current_section, "[PASSIVE_OBSTACLES]") == 0) {
+      PASSIVE_OBSTACLE obs = LoadPassiveObstacle(line, level->num_passive_obstacles);
+      level->passive_obstacles = (PASSIVE_OBSTACLE *)AddLevelEntity(
+          level->passive_obstacles, sizeof(PASSIVE_OBSTACLE),
+          &level->num_passive_obstacles, &obs);
+      if (level->passive_obstacles == NULL) {
         free(current_section);
         FreeLevel(level);
         fclose(file);

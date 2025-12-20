@@ -1,0 +1,48 @@
+[CONFIG]
+TIME=120
+LIFES=5
+WIDTH=40
+HEIGHT=30
+START_X=2
+START_Y=2
+WIN_SCORE=50
+
+[TOTEMS]
+# Test totems scattered around
+(10,5) 10
+(30,5) 15
+(10,25) 20
+(35,28) 25
+
+[OBSTACLES]
+# Some basic obstacles
+(15,10) (18,12)
+(25,20) (28,22)
+
+[ENEMIES]
+# A few enemies to make it interesting
+PATROL (5,15) (15,15) (5,15) 2
+RANDOM (20,5) (35,15) (25,10) 1
+
+[AGGRESSIVE_OBSTACLES]
+# One spike and one firejet
+SPIKE (20,10) UP 3
+FIREJET (15,20) RIGHT 2 5
+
+[POWERUPS]
+# Power-ups for testing
+SHIELD (5,5)
+DOUBLE (30,20)
+
+[PASSIVE_OBSTACLES]
+# Teleport pad pair (0 and 1 linked)
+TELEPORT (5,8) (6,9) 1
+TELEPORT (35,8) (36,9) 0
+
+# Sticky floor areas
+STICKY (10,15) (14,18)
+STICKY (25,5) (29,8)
+
+# Tall grass areas
+GRASS (15,25) (20,28)
+GRASS (30,12) (38,18)
