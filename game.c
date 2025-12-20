@@ -31,6 +31,16 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->life_loss = LIFE_STATUS_NONE;
   state->status = CONTINUE;
   state->player_pos = state->level->start_pos;
+  state->num_active_powerups = 0;
+  state->has_shield = FALSE;
+  state->shield_protection_timer = 0;
+  state->extra_life_timer = 0;
+
+  for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
+    state->active_powerups[i].is_active = FALSE;
+    state->active_powerups[i].frames_remaining = 0;
+    state->active_powerups[i].type = POWERUP_TYPE_UNKNOWN;
+  }
 
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Game initialized.");
 
@@ -86,9 +96,86 @@ void CollectTotems(GAMESTATE *state) {
     TOTEM *totem = &state->level->totems[i];
     if (!totem->is_collected && totem->pos.x == state->player_pos.x &&
         totem->pos.y == state->player_pos.y) {
-      state->score += totem->points;
+      int points = totem->points;
+      if (IsPowerupActive(state, POWERUP_DOUBLE_POINTS)) {
+        points *= 2;
+      }
+      state->score += points;
       totem->is_collected = TRUE;
     }
+  }
+}
+
+int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
+  for (int i = 0; i < state->num_active_powerups; i++) {
+    if (state->active_powerups[i].is_active &&
+        state->active_powerups[i].type == type) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+int ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
+                                 int duration_frames) {
+  if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
+    int slot = state->num_active_powerups;
+    state->active_powerups[slot].type = type;
+    state->active_powerups[slot].frames_remaining = duration_frames;
+    state->active_powerups[slot].is_active = TRUE;
+    state->num_active_powerups++;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+void CollectPowerups(GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_powerups; i++) {
+    POWERUP *powerup = &state->level->powerups[i];
+    if (!powerup->is_collected && powerup->pos.x == state->player_pos.x &&
+        powerup->pos.y == state->player_pos.y) {
+      powerup->is_collected = TRUE;
+
+      switch (powerup->type) {
+      case POWERUP_SHIELD:
+        state->has_shield = TRUE;
+        break;
+      case POWERUP_EXTRA_LIFE:
+        state->lifes_left++;
+        state->extra_life_timer = 2 * FRAMES_PER_SECOND; // 2 seconds
+        break;
+      case POWERUP_DOUBLE_POINTS:
+        ActivateTimedPowerup(state, POWERUP_DOUBLE_POINTS,
+                             DOUBLE_POINTS_DURATION_FRAMES);
+        break;
+      case POWERUP_TIME_FREEZE:
+        ActivateTimedPowerup(state, POWERUP_TIME_FREEZE,
+                             TIME_FREEZE_DURATION_FRAMES);
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+void UpdateActivePowerups(GAMESTATE *state) {
+  int i = 0;
+  while (i < state->num_active_powerups) {
+    if (state->active_powerups[i].is_active) {
+      state->active_powerups[i].frames_remaining--;
+
+      if (state->active_powerups[i].frames_remaining <= 0) {
+        state->active_powerups[i].is_active = FALSE;
+
+        for (int j = i; j < state->num_active_powerups - 1; j++) {
+          state->active_powerups[j] = state->active_powerups[j + 1];
+        }
+        state->num_active_powerups--;
+        continue;
+      }
+    }
+    i++;
   }
 }
 
@@ -132,6 +219,10 @@ void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason) {
 }
 
 void MoveEnemies(GAMESTATE *state) {
+  if (IsPowerupActive(state, POWERUP_TIME_FREEZE)) {
+    return;
+  }
+
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->type == ENEMY_TYPE_UNKNOWN) {
@@ -215,10 +306,20 @@ void MoveEnemies(GAMESTATE *state) {
 }
 
 void CheckPlayerEnemyCollision(GAMESTATE *state) {
+  // If shield protection timer is active, player is immune
+  if (state->shield_protection_timer > 0) {
+    return;
+  }
+
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
+      if (state->has_shield) {
+        state->has_shield = FALSE;
+        state->shield_protection_timer = FRAMES_PER_SECOND; // 1 second of protection
+        break;
+      }
       HandlePlayerKill(state,
                        (enemy->type == ENEMY_TELEPORTER) ? LIFE_TELEPORTER_KILL
                        : (enemy->type == ENEMY_CHASER)   ? LIFE_CHASER_KILL
@@ -351,25 +452,51 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     wanted_pos.x = state->player_pos.x;
     wanted_pos.y = state->player_pos.y;
+    
+    int player_moved = FALSE;
 
     if (ch == UP) {
       wanted_pos.y++;
+      player_moved = TRUE;
     } else if (ch == DOWN) {
       wanted_pos.y--;
+      player_moved = TRUE;
     } else if (ch == LEFT) {
       wanted_pos.x--;
+      player_moved = TRUE;
     } else if (ch == RIGHT) {
       wanted_pos.x++;
+      player_moved = TRUE;
     }
 
     if (CheckCollision(state, wanted_pos)) {
       state->player_pos = wanted_pos;
+    } else {
+      player_moved = FALSE; // Movement was blocked, so player didn't actually move
+    }
+    
+    // Reset shield protection timer if player moved
+    if (player_moved && state->shield_protection_timer > 0) {
+      state->shield_protection_timer = 0;
     }
 
     snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
              state->player_pos.x, state->player_pos.y);
 
     CollectTotems(state);
+    CollectPowerups(state);
+    UpdateActivePowerups(state);
+    
+    // Decrement extra life timer
+    if (state->extra_life_timer > 0) {
+      state->extra_life_timer--;
+    }
+    
+    // Decrement shield protection timer
+    if (state->shield_protection_timer > 0) {
+      state->shield_protection_timer--;
+    }
+    
     MoveEnemies(state);
     CheckPlayerEnemyCollision(state);
     UpdateAggressiveObstacles(state);

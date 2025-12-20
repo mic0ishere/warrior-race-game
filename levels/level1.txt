@@ -49,3 +49,15 @@ SPIKE (11,2) DOWN 1.5
 FIREJET (5,10) RIGHT 2 7
 FIREJET (25,15) LEFT 1.5 6
 FIREJET (15,25) UP 3 5
+
+[POWERUPS]
+# type (x,y)
+# SHIELD - negates next enemy collision
+# DOUBLE - doubles points for 10 seconds
+# LIFE - grants extra life
+# FREEZE - freezes enemies for 5 seconds
+
+SHIELD (3,3)
+DOUBLE (18,18)
+LIFE (27,27)
+FREEZE (15,5)

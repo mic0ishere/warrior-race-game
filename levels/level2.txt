@@ -28,3 +28,9 @@ RANDOM (18,0) (24,10) (20,5) 1
 # SPIKE (x,y) direction interval 
 SPIKE (10,5) UP 2
 SPIKE (20,10) DOWN 2
+
+[POWERUPS]
+# type (x,y)
+SHIELD (2,2)
+DOUBLE (12,12)
+LIFE (22,22)

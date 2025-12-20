@@ -26,6 +26,7 @@ void FreeLevel(LEVEL *level) {
     free(level->obstacles);
     free(level->enemies);
     free(level->aggressive_obstacles);
+    free(level->powerups);
     free(level);
   }
 }
@@ -137,6 +138,29 @@ AGGRESSIVE_OBSTACLE LoadAggressiveObstacle(const char *line, int obs_id) {
   return obs;
 }
 
+POWERUP LoadPowerup(const char *line, int powerup_id) {
+  POWERUP powerup;
+  char type_str[32] = "";
+
+  powerup.is_collected = FALSE;
+  sscanf(line, "%31s (%d,%d)", type_str, &powerup.pos.x, &powerup.pos.y);
+
+  if (strcmp(type_str, "SHIELD") == 0) {
+    powerup.type = POWERUP_SHIELD;
+  } else if (strcmp(type_str, "DOUBLE") == 0) {
+    powerup.type = POWERUP_DOUBLE_POINTS;
+  } else if (strcmp(type_str, "LIFE") == 0) {
+    powerup.type = POWERUP_EXTRA_LIFE;
+  } else if (strcmp(type_str, "FREEZE") == 0) {
+    powerup.type = POWERUP_TIME_FREEZE;
+  } else {
+    powerup.type = POWERUP_TYPE_UNKNOWN;
+    fprintf(stderr, "Warning: Powerups[%d] with unknown type.\n", powerup_id);
+  }
+
+  return powerup;
+}
+
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
 
@@ -159,10 +183,12 @@ LEVEL *LoadLevel(const char *filename) {
   level->obstacles = NULL;
   level->enemies = NULL;
   level->aggressive_obstacles = NULL;
+  level->powerups = NULL;
   level->num_totems = 0;
   level->num_obstacles = 0;
   level->num_enemies = 0;
   level->num_aggressive_obstacles = 0;
+  level->num_powerups = 0;
 
   char line[MAX_LINE_LEN];
   char *current_section = NULL;
@@ -245,6 +271,16 @@ LEVEL *LoadLevel(const char *filename) {
           &level->num_aggressive_obstacles, &obs);
 
       if (level->aggressive_obstacles == NULL) {
+        free(current_section);
+        FreeLevel(level);
+        fclose(file);
+        return NULL;
+      }
+    } else if (strcmp(current_section, "[POWERUPS]") == 0) {
+      POWERUP powerup = LoadPowerup(line, level->num_powerups);
+      level->powerups = (POWERUP *)AddLevelEntity(
+          level->powerups, sizeof(POWERUP), &level->num_powerups, &powerup);
+      if (level->powerups == NULL) {
         free(current_section);
         FreeLevel(level);
         fclose(file);

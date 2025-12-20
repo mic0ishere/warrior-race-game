@@ -31,6 +31,10 @@ WINDOW *InitScreen(void) {
   init_pair(TELEPORTER_WARNING_COLOR, COLOR_WHITE + 8, COLOR_MAGENTA + 8);
   init_pair(CHASER_SLEEPING_COLOR, COLOR_WHITE, COLOR_BLUE);
   init_pair(CHASER_ANGRY_COLOR, COLOR_WHITE + 8, COLOR_RED + 8);
+  init_pair(POWERUP_SHIELD_COLOR, COLOR_BLACK, COLOR_CYAN + 8);
+  init_pair(POWERUP_DOUBLE_COLOR, COLOR_BLACK, COLOR_YELLOW);
+  init_pair(POWERUP_LIFE_COLOR, COLOR_BLACK, COLOR_GREEN + 8);
+  init_pair(POWERUP_FREEZE_COLOR, COLOR_BLACK, COLOR_BLUE + 8);
 
   noecho();
   curs_set(0);
@@ -166,6 +170,41 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
 
   mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit [P]=Pause");
 
+  char powerup_status[COLS];
+  int status_pos = 0;
+
+  if (state->has_shield) {
+    status_pos +=
+        snprintf(powerup_status + status_pos, COLS - status_pos, "[Shield] ");
+  }
+
+  if (state->extra_life_timer > 0) {
+    status_pos +=
+        snprintf(powerup_status + status_pos, COLS - status_pos, "[+1 Life] ");
+  }
+
+  for (int i = 0; i < state->num_active_powerups; i++) {
+    if (state->active_powerups[i].is_active) {
+      int seconds = state->active_powerups[i].frames_remaining / FRAMES_PER_SECOND;
+      switch (state->active_powerups[i].type) {
+      case POWERUP_DOUBLE_POINTS:
+        status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
+                               "[2x Points:%ds] ", seconds);
+        break;
+      case POWERUP_TIME_FREEZE:
+        status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
+                               "[Freeze:%ds] ", seconds);
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  if (status_pos > 0) {
+    mvwprintw(W->window, 3, 2, "%s", powerup_status);
+  }
+
   wrefresh(W->window);
 }
 
@@ -261,6 +300,38 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     if (totem->is_collected)
       continue;
     SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
+  }
+
+  for (int i = 0; i < state->level->num_powerups; i++) {
+    POWERUP *powerup = &state->level->powerups[i];
+    if (powerup->is_collected)
+      continue;
+
+    const char *symbol = "?";
+    int color = DEFAULT_COLOR;
+
+    switch (powerup->type) {
+    case POWERUP_SHIELD:
+      symbol = "S";
+      color = POWERUP_SHIELD_COLOR;
+      break;
+    case POWERUP_DOUBLE_POINTS:
+      symbol = "D";
+      color = POWERUP_DOUBLE_COLOR;
+      break;
+    case POWERUP_EXTRA_LIFE:
+      symbol = "L";
+      color = POWERUP_LIFE_COLOR;
+      break;
+    case POWERUP_TIME_FREEZE:
+      symbol = "F";
+      color = POWERUP_FREEZE_COLOR;
+      break;
+    default:
+      continue;
+    }
+
+    SafePrintEntity(W, powerup->pos.x, powerup->pos.y, symbol, state, color);
   }
 
   // Render player
