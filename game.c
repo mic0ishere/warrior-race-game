@@ -114,6 +114,17 @@ int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
   return FALSE;
 }
 
+static void ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
+                                 int duration_frames) {
+  if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
+    int slot = state->num_active_powerups;
+    state->active_powerups[slot].type = type;
+    state->active_powerups[slot].frames_remaining = duration_frames;
+    state->active_powerups[slot].is_active = TRUE;
+    state->num_active_powerups++;
+  }
+}
+
 void CollectPowerups(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_powerups; i++) {
     POWERUP *powerup = &state->level->powerups[i];
@@ -129,24 +140,12 @@ void CollectPowerups(GAMESTATE *state) {
         state->lifes_left++;
         break;
       case POWERUP_DOUBLE_POINTS:
-        if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
-          int slot = state->num_active_powerups;
-          state->active_powerups[slot].type = POWERUP_DOUBLE_POINTS;
-          state->active_powerups[slot].frames_remaining =
-              DOUBLE_POINTS_DURATION_FRAMES;
-          state->active_powerups[slot].is_active = TRUE;
-          state->num_active_powerups++;
-        }
+        ActivateTimedPowerup(state, POWERUP_DOUBLE_POINTS,
+                             DOUBLE_POINTS_DURATION_FRAMES);
         break;
       case POWERUP_TIME_FREEZE:
-        if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
-          int slot = state->num_active_powerups;
-          state->active_powerups[slot].type = POWERUP_TIME_FREEZE;
-          state->active_powerups[slot].frames_remaining =
-              TIME_FREEZE_DURATION_FRAMES;
-          state->active_powerups[slot].is_active = TRUE;
-          state->num_active_powerups++;
-        }
+        ActivateTimedPowerup(state, POWERUP_TIME_FREEZE,
+                             TIME_FREEZE_DURATION_FRAMES);
         break;
       default:
         break;
@@ -156,7 +155,8 @@ void CollectPowerups(GAMESTATE *state) {
 }
 
 void UpdateActivePowerups(GAMESTATE *state) {
-  for (int i = 0; i < state->num_active_powerups; i++) {
+  int i = 0;
+  while (i < state->num_active_powerups) {
     if (state->active_powerups[i].is_active) {
       state->active_powerups[i].frames_remaining--;
 
@@ -167,9 +167,10 @@ void UpdateActivePowerups(GAMESTATE *state) {
           state->active_powerups[j] = state->active_powerups[j + 1];
         }
         state->num_active_powerups--;
-        i--;
+        continue;
       }
     }
+    i++;
   }
 }
 
