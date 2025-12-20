@@ -33,6 +33,8 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->player_pos = state->level->start_pos;
   state->num_active_powerups = 0;
   state->has_shield = FALSE;
+  state->shield_used = FALSE;
+  state->powerup_collected = POWERUP_TYPE_UNKNOWN;
 
   for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
     state->active_powerups[i].is_active = FALSE;
@@ -140,6 +142,7 @@ void CollectPowerups(GAMESTATE *state) {
         break;
       case POWERUP_EXTRA_LIFE:
         state->lifes_left++;
+        state->powerup_collected = POWERUP_EXTRA_LIFE;
         break;
       case POWERUP_DOUBLE_POINTS:
         ActivateTimedPowerup(state, POWERUP_DOUBLE_POINTS,
@@ -309,6 +312,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
         enemy->current_pos.y == state->player_pos.y) {
       if (state->has_shield) {
         state->has_shield = FALSE;
+        state->shield_used = TRUE;
         break;
       }
       HandlePlayerKill(state,
@@ -496,6 +500,21 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       state->life_loss = LIFE_STATUS_NONE;
       state->player_pos = state->level->start_pos;
       usleep(2 * 1000 * 1000); // Pause for 2 seconds to show life loss message
+    }
+
+    if (state->shield_used) {
+      ShowAlert(playwin, "Shield protected you!");
+      state->shield_used = FALSE;
+      state->player_pos = state->level->start_pos;
+      usleep(1000 * 1000); // Pause for 1 second to show shield message
+    }
+
+    if (state->powerup_collected != POWERUP_TYPE_UNKNOWN) {
+      if (state->powerup_collected == POWERUP_EXTRA_LIFE) {
+        ShowAlert(playwin, "Extra life collected!");
+        usleep(500 * 1000); // Pause for 0.5 seconds to show message
+      }
+      state->powerup_collected = POWERUP_TYPE_UNKNOWN;
     }
 
     flushinp();
