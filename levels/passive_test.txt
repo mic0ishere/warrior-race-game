@@ -36,8 +36,9 @@ DOUBLE (30,20)
 
 [PASSIVE_OBSTACLES]
 # Teleport pad pair (0 and 1 linked)
-TELEPORT (5,8) (6,9) 1
-TELEPORT (35,8) (36,9) 0
+# Format: TELEPORT (x,y) (x,y) my_id target_id
+TELEPORT (5,8) (6,9) 0 1
+TELEPORT (35,8) (36,9) 1 0
 
 # Sticky floor areas
 STICKY (10,15) (14,18)

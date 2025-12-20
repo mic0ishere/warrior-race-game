@@ -26,8 +26,9 @@ PATROL (5,5) (15,5) (5,5) 1
 
 [PASSIVE_OBSTACLES]
 # Testing teleport pads - pair of pads linked to each other
-TELEPORT (5,15) (5,15) 1
-TELEPORT (20,5) (20,5) 0
+# Format: TELEPORT (x,y) (x,y) my_id target_id
+TELEPORT (5,15) (5,15) 0 1
+TELEPORT (20,5) (20,5) 1 0
 
 # Testing sticky floor - small area
 STICKY (10,5) (14,8)

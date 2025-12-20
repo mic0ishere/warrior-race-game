@@ -285,12 +285,19 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
     return;
   }
   
-  // Apply tall grass vision restriction
-  if (state->is_in_tall_grass) {
+  // Apply tall grass vision restriction with gradual transition
+  if (state->grass_vision_transition > 0) {
     int dx = abs(level_x - state->player_pos.x);
     int dy = abs(level_y - state->player_pos.y);
     
-    if (dx > TALL_GRASS_VISION_RANGE || dy > TALL_GRASS_VISION_RANGE) {
+    // Calculate effective vision range based on transition progress
+    // vision_range increases from 2 to full as transition goes from 10 to 0
+    float transition_factor = (float)state->grass_vision_transition / TALL_GRASS_TRANSITION_FRAMES;
+    int max_range = MAX(state->level->width, state->level->height);
+    int effective_range = TALL_GRASS_VISION_RANGE + 
+                         (int)((max_range - TALL_GRASS_VISION_RANGE) * (1.0f - transition_factor));
+    
+    if (dx > effective_range || dy > effective_range) {
       return;
     }
   }

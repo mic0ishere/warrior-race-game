@@ -38,6 +38,7 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->is_in_tall_grass = FALSE;
   state->sticky_floor_counter = 0;
   state->last_teleport_frame = -TELEPORT_PAD_COOLDOWN_FRAMES;
+  state->grass_vision_transition = 0;
 
   for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
     state->active_powerups[i].is_active = FALSE;
@@ -384,6 +385,7 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
 }
 
 void CheckPassiveObstacles(GAMESTATE *state) {
+  int was_in_grass = state->is_in_tall_grass;
   state->is_in_tall_grass = FALSE;
   int is_on_sticky = FALSE;
   
@@ -397,35 +399,24 @@ void CheckPassiveObstacles(GAMESTATE *state) {
     if (obs->type == PASSIVE_TELEPORT_PAD) {
       int cooldown_elapsed = state->frames_elapsed - state->last_teleport_frame;
       if (cooldown_elapsed >= TELEPORT_PAD_COOLDOWN_FRAMES) {
-        if (obs->teleport_target_id >= 0 && 
-            obs->teleport_target_id < state->level->num_passive_obstacles) {
-          PASSIVE_OBSTACLE *target = &state->level->passive_obstacles[obs->teleport_target_id];
+        // Find target pad by matching teleport_id with target's teleport_id
+        for (int j = 0; j < state->level->num_passive_obstacles; j++) {
+          PASSIVE_OBSTACLE *target = &state->level->passive_obstacles[j];
           
-          if (target->type == PASSIVE_TELEPORT_PAD) {
+          if (target->type == PASSIVE_TELEPORT_PAD && 
+              target->teleport_id == obs->teleport_target_id) {
             POSITION center;
             center.x = (target->pos1.x + target->pos2.x) / 2;
             center.y = (target->pos1.y + target->pos2.y) / 2;
             
             // Check if destination is valid (no obstacles)
             if (CheckCollision(state, center)) {
-              // Additional check: ensure no enemy at destination
-              int enemy_at_dest = FALSE;
-              for (int j = 0; j < state->level->num_enemies; j++) {
-                ENEMY *enemy = &state->level->enemies[j];
-                if (enemy->current_pos.x == center.x && 
-                    enemy->current_pos.y == center.y) {
-                  enemy_at_dest = TRUE;
-                  break;
-                }
-              }
-              
-              if (!enemy_at_dest) {
-                state->player_pos = center;
-                state->last_teleport_frame = state->frames_elapsed;
-                snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
-                return;
-              }
+              state->player_pos = center;
+              state->last_teleport_frame = state->frames_elapsed;
+              snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
+              return;
             }
+            break;
           }
         }
       }
@@ -434,6 +425,22 @@ void CheckPassiveObstacles(GAMESTATE *state) {
     } else if (obs->type == PASSIVE_TALL_GRASS) {
       state->is_in_tall_grass = TRUE;
     }
+  }
+  
+  // Handle gradual vision transition for tall grass
+  if (state->is_in_tall_grass && !was_in_grass) {
+    // Entering grass - start transition
+    state->grass_vision_transition = 0;
+  } else if (!state->is_in_tall_grass && was_in_grass) {
+    // Exiting grass - start transition out
+    state->grass_vision_transition = TALL_GRASS_TRANSITION_FRAMES;
+  }
+  
+  // Update vision transition
+  if (state->is_in_tall_grass && state->grass_vision_transition < TALL_GRASS_TRANSITION_FRAMES) {
+    state->grass_vision_transition++;
+  } else if (!state->is_in_tall_grass && state->grass_vision_transition > 0) {
+    state->grass_vision_transition--;
   }
   
   if (!is_on_sticky) {
