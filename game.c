@@ -114,7 +114,7 @@ int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
   return FALSE;
 }
 
-static void ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
+static int ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
                                  int duration_frames) {
   if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
     int slot = state->num_active_powerups;
@@ -122,7 +122,9 @@ static void ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
     state->active_powerups[slot].frames_remaining = duration_frames;
     state->active_powerups[slot].is_active = TRUE;
     state->num_active_powerups++;
+    return TRUE;
   }
+  return FALSE;
 }
 
 void CollectPowerups(GAMESTATE *state) {
