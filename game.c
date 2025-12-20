@@ -33,7 +33,7 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->player_pos = state->level->start_pos;
   state->num_active_powerups = 0;
   state->has_shield = FALSE;
-  state->shield_used = FALSE;
+  state->shield_protection_timer = 0;
   state->extra_life_timer = 0;
 
   for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
@@ -306,13 +306,18 @@ void MoveEnemies(GAMESTATE *state) {
 }
 
 void CheckPlayerEnemyCollision(GAMESTATE *state) {
+  // If shield protection timer is active, player is immune
+  if (state->shield_protection_timer > 0) {
+    return;
+  }
+
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
       if (state->has_shield) {
         state->has_shield = FALSE;
-        state->shield_used = TRUE;
+        state->shield_protection_timer = FRAMES_PER_SECOND / 2; // 0.5 seconds
         break;
       }
       HandlePlayerKill(state,
@@ -447,19 +452,32 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     wanted_pos.x = state->player_pos.x;
     wanted_pos.y = state->player_pos.y;
+    
+    int player_moved = FALSE;
 
     if (ch == UP) {
       wanted_pos.y++;
+      player_moved = TRUE;
     } else if (ch == DOWN) {
       wanted_pos.y--;
+      player_moved = TRUE;
     } else if (ch == LEFT) {
       wanted_pos.x--;
+      player_moved = TRUE;
     } else if (ch == RIGHT) {
       wanted_pos.x++;
+      player_moved = TRUE;
     }
 
     if (CheckCollision(state, wanted_pos)) {
       state->player_pos = wanted_pos;
+    } else {
+      player_moved = FALSE; // Movement was blocked, so player didn't actually move
+    }
+    
+    // Reset shield protection timer if player moved
+    if (player_moved && state->shield_protection_timer > 0) {
+      state->shield_protection_timer = 0;
     }
 
     snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
@@ -472,6 +490,11 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     // Decrement extra life timer
     if (state->extra_life_timer > 0) {
       state->extra_life_timer--;
+    }
+    
+    // Decrement shield protection timer
+    if (state->shield_protection_timer > 0) {
+      state->shield_protection_timer--;
     }
     
     MoveEnemies(state);
@@ -506,13 +529,6 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
       state->life_loss = LIFE_STATUS_NONE;
       state->player_pos = state->level->start_pos;
       usleep(2 * 1000 * 1000); // Pause for 2 seconds to show life loss message
-    }
-
-    if (state->shield_used) {
-      ShowAlert(playwin, "Shield protected you!");
-      state->shield_used = FALSE;
-      state->player_pos = state->level->start_pos;
-      usleep(1000 * 1000); // Pause for 1 second to show shield message
     }
 
     flushinp();

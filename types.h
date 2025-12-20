@@ -227,7 +227,7 @@ typedef struct {
   ACTIVE_POWERUP active_powerups[MAX_ACTIVE_POWERUPS];
   int num_active_powerups;
   int has_shield;
-  int shield_used;
+  int shield_protection_timer;
   int extra_life_timer;
 } GAMESTATE;
 
