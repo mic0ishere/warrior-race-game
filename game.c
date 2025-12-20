@@ -317,7 +317,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
         enemy->current_pos.y == state->player_pos.y) {
       if (state->has_shield) {
         state->has_shield = FALSE;
-        state->shield_protection_timer = FRAMES_PER_SECOND / 2; // 0.5 seconds
+        state->shield_protection_timer = FRAMES_PER_SECOND; // 1 second of protection
         break;
       }
       HandlePlayerKill(state,
