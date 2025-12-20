@@ -26,7 +26,7 @@ make rebuild    # Clean and rebuild
 
 The game now includes collectible power-ups that enhance gameplay:
 
-- **Shield (S)** - Cyan - Negates the next enemy collision
+- **Shield (S)** - Cyan - Negates the next enemy collision (not environmental hazards)
 - **Double Points (D)** - Yellow - Doubles all points earned for 10 seconds
 - **Extra Life (L)** - Green - Instantly grants one additional life
 - **Time Freeze (F)** - Blue - Freezes all enemies for 5 seconds
