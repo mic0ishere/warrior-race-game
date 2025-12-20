@@ -21,12 +21,10 @@
 
 - power-ups
     - shield -> ignore next enemy collision
-    - speed boost -> temporary faster movement
-    - double points -> temporary double scoring for totems collected
+    - double points -> points earned are doubled for a short time
     - extra life -> additional life
 
 - passive obstacles
     - teleport pads -> when entered, transport player to another part of the level
     - sticky floor -> slow down player movement
-    - tall grass -> vision shrinks when inside
-    - one-way doors -> can only be crossed in one direction
+    - tall grass -> vision shrinks when inside (you only see 2 blocks around you)
