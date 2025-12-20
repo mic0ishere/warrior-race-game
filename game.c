@@ -406,11 +406,25 @@ void CheckPassiveObstacles(GAMESTATE *state) {
             center.x = (target->pos1.x + target->pos2.x) / 2;
             center.y = (target->pos1.y + target->pos2.y) / 2;
             
+            // Check if destination is valid (no obstacles)
             if (CheckCollision(state, center)) {
-              state->player_pos = center;
-              state->last_teleport_frame = state->frames_elapsed;
-              snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
-              return;
+              // Additional check: ensure no enemy at destination
+              int enemy_at_dest = FALSE;
+              for (int j = 0; j < state->level->num_enemies; j++) {
+                ENEMY *enemy = &state->level->enemies[j];
+                if (enemy->current_pos.x == center.x && 
+                    enemy->current_pos.y == center.y) {
+                  enemy_at_dest = TRUE;
+                  break;
+                }
+              }
+              
+              if (!enemy_at_dest) {
+                state->player_pos = center;
+                state->last_teleport_frame = state->frames_elapsed;
+                snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
+                return;
+              }
             }
           }
         }
