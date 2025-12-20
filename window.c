@@ -317,7 +317,7 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     
     switch (obs->type) {
     case PASSIVE_TELEPORT_PAD:
-      symbol = "T";
+      symbol = "P";
       color = TELEPORT_PAD_COLOR;
       break;
     case PASSIVE_STICKY_FLOOR:
