@@ -138,6 +138,29 @@ AGGRESSIVE_OBSTACLE LoadAggressiveObstacle(const char *line, int obs_id) {
   return obs;
 }
 
+POWERUP LoadPowerup(const char *line, int powerup_id) {
+  POWERUP powerup;
+  char type_str[32] = "";
+
+  powerup.is_collected = FALSE;
+  sscanf(line, "%31s (%d,%d)", type_str, &powerup.pos.x, &powerup.pos.y);
+
+  if (strcmp(type_str, "SHIELD") == 0) {
+    powerup.type = POWERUP_SHIELD;
+  } else if (strcmp(type_str, "DOUBLE") == 0) {
+    powerup.type = POWERUP_DOUBLE_POINTS;
+  } else if (strcmp(type_str, "LIFE") == 0) {
+    powerup.type = POWERUP_EXTRA_LIFE;
+  } else if (strcmp(type_str, "FREEZE") == 0) {
+    powerup.type = POWERUP_TIME_FREEZE;
+  } else {
+    powerup.type = POWERUP_TYPE_UNKNOWN;
+    fprintf(stderr, "Warning: Powerups[%d] with unknown type.\n", powerup_id);
+  }
+
+  return powerup;
+}
+
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
 
@@ -254,34 +277,14 @@ LEVEL *LoadLevel(const char *filename) {
         return NULL;
       }
     } else if (strcmp(current_section, "[POWERUPS]") == 0) {
-      POWERUP new_powerup;
-      char type_str[32] = "";
-      new_powerup.is_collected = FALSE;
-      sscanf(line, "%31s (%d,%d)", type_str, &new_powerup.pos.x,
-             &new_powerup.pos.y);
-
-      if (strcmp(type_str, "SHIELD") == 0) {
-        new_powerup.type = POWERUP_SHIELD;
-      } else if (strcmp(type_str, "DOUBLE") == 0) {
-        new_powerup.type = POWERUP_DOUBLE_POINTS;
-      } else if (strcmp(type_str, "LIFE") == 0) {
-        new_powerup.type = POWERUP_EXTRA_LIFE;
-      } else if (strcmp(type_str, "FREEZE") == 0) {
-        new_powerup.type = POWERUP_TIME_FREEZE;
-      } else {
-        new_powerup.type = POWERUP_TYPE_UNKNOWN;
-      }
-
-      if (new_powerup.type != POWERUP_TYPE_UNKNOWN) {
-        level->powerups =
-            (POWERUP *)AddLevelEntity(level->powerups, sizeof(POWERUP),
-                                      &level->num_powerups, &new_powerup);
-        if (level->powerups == NULL) {
-          free(current_section);
-          FreeLevel(level);
-          fclose(file);
-          return NULL;
-        }
+      POWERUP powerup = LoadPowerup(line, level->num_powerups);
+      level->powerups = (POWERUP *)AddLevelEntity(
+          level->powerups, sizeof(POWERUP), &level->num_powerups, &powerup);
+      if (level->powerups == NULL) {
+        free(current_section);
+        FreeLevel(level);
+        fclose(file);
+        return NULL;
       }
     }
   }
