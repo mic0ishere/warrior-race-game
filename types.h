@@ -25,6 +25,9 @@
 #define TELEPORTER_INTERVAL_FRAMES (3 * FRAMES_PER_SECOND) // 3 seconds
 #define TELEPORTER_WARNING_FRAMES (int)(FRAMES_PER_SECOND / 1.5) // 0.66 second warning 
 #define OBSTACLE_ACTIVE_DURATION_FRAMES FRAMES_PER_SECOND  // 1 second
+#define DOUBLE_POINTS_DURATION_FRAMES (10 * FRAMES_PER_SECOND) // 10 seconds
+#define TIME_FREEZE_DURATION_FRAMES (5 * FRAMES_PER_SECOND) // 5 seconds
+#define MAX_ACTIVE_POWERUPS 4
 
 // Color pair identifiers
 #define DEFAULT_COLOR 0
@@ -42,6 +45,10 @@
 #define TELEPORTER_WARNING_COLOR 12
 #define CHASER_SLEEPING_COLOR 13
 #define CHASER_ANGRY_COLOR 14
+#define POWERUP_SHIELD_COLOR 15
+#define POWERUP_DOUBLE_COLOR 16
+#define POWERUP_LIFE_COLOR 17
+#define POWERUP_FREEZE_COLOR 18
 
 // Window dimensions and position
 #define BORDER 1
@@ -98,6 +105,29 @@ typedef struct {
   int points;
   int is_collected;
 } TOTEM;
+
+// Power-up type enumeration
+typedef enum {
+  POWERUP_SHIELD,
+  POWERUP_DOUBLE_POINTS,
+  POWERUP_EXTRA_LIFE,
+  POWERUP_TIME_FREEZE,
+  POWERUP_TYPE_UNKNOWN
+} POWERUP_TYPE;
+
+// Power-up structure
+typedef struct {
+  POSITION pos;
+  POWERUP_TYPE type;
+  int is_collected;
+} POWERUP;
+
+// Active power-up tracking structure
+typedef struct {
+  POWERUP_TYPE type;
+  int frames_remaining;
+  int is_active;
+} ACTIVE_POWERUP;
 
 // Obstacle structure
 typedef struct {
@@ -170,6 +200,8 @@ typedef struct {
   ENEMY *enemies;
   int num_aggressive_obstacles;
   AGGRESSIVE_OBSTACLE *aggressive_obstacles;
+  int num_powerups;
+  POWERUP *powerups;
 } LEVEL;
 
 typedef enum {
@@ -192,6 +224,9 @@ typedef struct {
   LIFE_LOST_STATUS life_loss;
   LEVEL *level;
   POSITION player_pos;
+  ACTIVE_POWERUP active_powerups[MAX_ACTIVE_POWERUPS];
+  int num_active_powerups;
+  int has_shield;
 } GAMESTATE;
 
 // Windows group structure

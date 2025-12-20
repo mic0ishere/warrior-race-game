@@ -26,6 +26,7 @@ void FreeLevel(LEVEL *level) {
     free(level->obstacles);
     free(level->enemies);
     free(level->aggressive_obstacles);
+    free(level->powerups);
     free(level);
   }
 }
@@ -159,10 +160,12 @@ LEVEL *LoadLevel(const char *filename) {
   level->obstacles = NULL;
   level->enemies = NULL;
   level->aggressive_obstacles = NULL;
+  level->powerups = NULL;
   level->num_totems = 0;
   level->num_obstacles = 0;
   level->num_enemies = 0;
   level->num_aggressive_obstacles = 0;
+  level->num_powerups = 0;
 
   char line[MAX_LINE_LEN];
   char *current_section = NULL;
@@ -249,6 +252,36 @@ LEVEL *LoadLevel(const char *filename) {
         FreeLevel(level);
         fclose(file);
         return NULL;
+      }
+    } else if (strcmp(current_section, "[POWERUPS]") == 0) {
+      POWERUP new_powerup;
+      char type_str[32] = "";
+      new_powerup.is_collected = FALSE;
+      sscanf(line, "%31s (%d,%d)", type_str, &new_powerup.pos.x,
+             &new_powerup.pos.y);
+
+      if (strcmp(type_str, "SHIELD") == 0) {
+        new_powerup.type = POWERUP_SHIELD;
+      } else if (strcmp(type_str, "DOUBLE") == 0) {
+        new_powerup.type = POWERUP_DOUBLE_POINTS;
+      } else if (strcmp(type_str, "LIFE") == 0) {
+        new_powerup.type = POWERUP_EXTRA_LIFE;
+      } else if (strcmp(type_str, "FREEZE") == 0) {
+        new_powerup.type = POWERUP_TIME_FREEZE;
+      } else {
+        new_powerup.type = POWERUP_TYPE_UNKNOWN;
+      }
+
+      if (new_powerup.type != POWERUP_TYPE_UNKNOWN) {
+        level->powerups =
+            (POWERUP *)AddLevelEntity(level->powerups, sizeof(POWERUP),
+                                      &level->num_powerups, &new_powerup);
+        if (level->powerups == NULL) {
+          free(current_section);
+          FreeLevel(level);
+          fclose(file);
+          return NULL;
+        }
       }
     }
   }

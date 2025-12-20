@@ -31,6 +31,14 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->life_loss = LIFE_STATUS_NONE;
   state->status = CONTINUE;
   state->player_pos = state->level->start_pos;
+  state->num_active_powerups = 0;
+  state->has_shield = FALSE;
+
+  for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
+    state->active_powerups[i].is_active = FALSE;
+    state->active_powerups[i].frames_remaining = 0;
+    state->active_powerups[i].type = POWERUP_TYPE_UNKNOWN;
+  }
 
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Game initialized.");
 
@@ -86,8 +94,81 @@ void CollectTotems(GAMESTATE *state) {
     TOTEM *totem = &state->level->totems[i];
     if (!totem->is_collected && totem->pos.x == state->player_pos.x &&
         totem->pos.y == state->player_pos.y) {
-      state->score += totem->points;
+      int points = totem->points;
+      if (IsPowerupActive(state, POWERUP_DOUBLE_POINTS)) {
+        points *= 2;
+      }
+      state->score += points;
       totem->is_collected = TRUE;
+    }
+  }
+}
+
+int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
+  for (int i = 0; i < state->num_active_powerups; i++) {
+    if (state->active_powerups[i].is_active &&
+        state->active_powerups[i].type == type) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+void CollectPowerups(GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_powerups; i++) {
+    POWERUP *powerup = &state->level->powerups[i];
+    if (!powerup->is_collected && powerup->pos.x == state->player_pos.x &&
+        powerup->pos.y == state->player_pos.y) {
+      powerup->is_collected = TRUE;
+
+      switch (powerup->type) {
+      case POWERUP_SHIELD:
+        state->has_shield = TRUE;
+        break;
+      case POWERUP_EXTRA_LIFE:
+        state->lifes_left++;
+        break;
+      case POWERUP_DOUBLE_POINTS:
+        if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
+          int slot = state->num_active_powerups;
+          state->active_powerups[slot].type = POWERUP_DOUBLE_POINTS;
+          state->active_powerups[slot].frames_remaining =
+              DOUBLE_POINTS_DURATION_FRAMES;
+          state->active_powerups[slot].is_active = TRUE;
+          state->num_active_powerups++;
+        }
+        break;
+      case POWERUP_TIME_FREEZE:
+        if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
+          int slot = state->num_active_powerups;
+          state->active_powerups[slot].type = POWERUP_TIME_FREEZE;
+          state->active_powerups[slot].frames_remaining =
+              TIME_FREEZE_DURATION_FRAMES;
+          state->active_powerups[slot].is_active = TRUE;
+          state->num_active_powerups++;
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+void UpdateActivePowerups(GAMESTATE *state) {
+  for (int i = 0; i < state->num_active_powerups; i++) {
+    if (state->active_powerups[i].is_active) {
+      state->active_powerups[i].frames_remaining--;
+
+      if (state->active_powerups[i].frames_remaining <= 0) {
+        state->active_powerups[i].is_active = FALSE;
+
+        for (int j = i; j < state->num_active_powerups - 1; j++) {
+          state->active_powerups[j] = state->active_powerups[j + 1];
+        }
+        state->num_active_powerups--;
+        i--;
+      }
     }
   }
 }
@@ -132,6 +213,10 @@ void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason) {
 }
 
 void MoveEnemies(GAMESTATE *state) {
+  if (IsPowerupActive(state, POWERUP_TIME_FREEZE)) {
+    return;
+  }
+
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->type == ENEMY_TYPE_UNKNOWN) {
@@ -219,6 +304,10 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
+      if (state->has_shield) {
+        state->has_shield = FALSE;
+        break;
+      }
       HandlePlayerKill(state,
                        (enemy->type == ENEMY_TELEPORTER) ? LIFE_TELEPORTER_KILL
                        : (enemy->type == ENEMY_CHASER)   ? LIFE_CHASER_KILL
@@ -370,6 +459,8 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
              state->player_pos.x, state->player_pos.y);
 
     CollectTotems(state);
+    CollectPowerups(state);
+    UpdateActivePowerups(state);
     MoveEnemies(state);
     CheckPlayerEnemyCollision(state);
     UpdateAggressiveObstacles(state);

@@ -15,6 +15,15 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos);
 // Collect totems at player position
 void CollectTotems(GAMESTATE *state);
 
+// Collect power-ups at player position
+void CollectPowerups(GAMESTATE *state);
+
+// Update active power-ups and handle expiration
+void UpdateActivePowerups(GAMESTATE *state);
+
+// Check if a power-up is currently active
+int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type);
+
 // Move position in specified direction
 void MoveInDirection(POSITION *pos, int direction, int amount);
 
