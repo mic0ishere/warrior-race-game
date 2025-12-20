@@ -19,10 +19,11 @@
     - for 10 frames before enemy teleporting, flash his color or show some indicator
     - when chaser enemy cannot see the player, change his color to indicate sleeping state
 
-- power-ups
+- power-ups ✅
     - shield -> ignore next enemy collision
     - double points -> points earned are doubled for a short time
     - extra life -> additional life
+    - time freeze -> freeze all enemies for a short time
 
 - passive obstacles
     - teleport pads -> when entered, transport player to another part of the level
