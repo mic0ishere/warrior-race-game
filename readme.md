@@ -21,3 +21,26 @@ make rebuild    # Clean and rebuild
 
 ./warrior_race  # Run the game
 ```
+
+### power-ups
+
+The game now includes collectible power-ups that enhance gameplay:
+
+- **Shield (S)** - Cyan - Negates the next enemy collision
+- **Double Points (D)** - Yellow - Doubles all points earned for 10 seconds
+- **Extra Life (L)** - Green - Instantly grants one additional life
+- **Time Freeze (F)** - Blue - Freezes all enemies for 5 seconds
+
+Active power-ups are displayed in the status bar with their remaining duration.
+
+### level format
+
+Power-ups can be added to level files in the `[POWERUPS]` section:
+
+```
+[POWERUPS]
+SHIELD (5,5)
+DOUBLE (20,20)
+LIFE (35,15)
+FREEZE (10,25)
+```
