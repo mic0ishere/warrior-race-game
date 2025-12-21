@@ -1,0 +1,37 @@
+[CONFIG]
+TIME=60
+LIFES=5
+WIDTH=25
+HEIGHT=20
+START_X=2
+START_Y=2
+WIN_SCORE=30
+
+[TOTEMS]
+# Easy to reach totems
+(10,10) 15
+(20,15) 15
+
+[OBSTACLES]
+# Simple border
+(0,10) (24,10)
+
+[ENEMIES]
+# One simple patrol enemy
+PATROL (5,5) (15,5) (5,5) 1
+
+[AGGRESSIVE_OBSTACLES]
+
+[POWERUPS]
+
+[PASSIVE_OBSTACLES]
+# Testing teleport pads - pair of pads linked to each other
+# Format: TELEPORT (x,y) (x,y) my_id target_id
+TELEPORT (5,15) (5,15) 0 1
+TELEPORT (20,5) (20,5) 1 0
+
+# Testing sticky floor - small area
+STICKY (10,5) (14,8)
+
+# Testing tall grass - corner area
+GRASS (15,12) (22,18)
