@@ -11,7 +11,7 @@
 
 // Main menu items
 static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
-                                             "Exit"};
+                                             "Instructions", "Exit"};
 
 // Instructions string
 static const char *instructions =
@@ -292,6 +292,148 @@ void ShowRanking(WIN *W) {
       break;
     case RIGHT:
       current_level = (current_level + 1) % num_levels;
+      break;
+    case QUIT:
+      return;
+    default:
+      break;
+    }
+  }
+}
+
+void ShowInstructions(WIN *W) {
+  WINDOW *win = W->window;
+  nodelay(win, FALSE);
+
+  // Define all instruction lines
+  const char *instruction_lines[] = {
+    "=== WARRIOR RACE - GAME INSTRUCTIONS ===",
+    "",
+    "OBJECTIVE:",
+    "  Collect totems to earn points and reach the win score before time",
+    "  runs out! Navigate the level, avoid enemies and obstacles, and use",
+    "  power-ups strategically.",
+    "",
+    "CONTROLS:",
+    "  W/A/S/D - Move player (Up/Left/Down/Right)",
+    "  P - Pause game",
+    "  Q - Quit to menu",
+    "",
+    "GAME MECHANICS:",
+    "  * Collect totems (@) to earn points",
+    "  * Reach WIN_SCORE points before time expires",
+    "  * Each life lost gives you a brief invulnerability period",
+    "  * Final score includes bonuses for remaining lives and time",
+    "",
+    "=== ENEMIES ===",
+    "",
+    "  [E] PATROL - Moves back and forth along a set path",
+    "      Color: Red background with white text",
+    "      Behavior: Predictable movement between two points",
+    "",
+    "  [E] RANDOM - Wanders randomly within bounds",
+    "      Color: Red background with white text",
+    "      Behavior: Unpredictable movement pattern",
+    "",
+    "  [E] CHASER - Pursues player when in range",
+    "      Color: Blue (sleeping) or Bright Red (chasing)",
+    "      Behavior: Actively hunts player within chase radius",
+    "",
+    "  [E] TELEPORTER - Randomly teleports around level",
+    "      Color: Red background, flashes magenta before teleport",
+    "      Behavior: Dangerous and unpredictable positioning",
+    "",
+    "=== AGGRESSIVE OBSTACLES ===",
+    "",
+    "  [^] SPIKE - Harms player from specific direction",
+    "      Color: Magenta background",
+    "      Behavior: Activates at regular intervals",
+    "      Danger: Only harmful when moving INTO spike direction",
+    "",
+    "  [#] FIREJET - Shoots fire in straight line",
+    "      Color: Bright red background",
+    "      Behavior: Emits fire at set intervals",
+    "      Danger: Fire travels multiple tiles in one direction",
+    "",
+    "=== PASSIVE OBSTACLES ===",
+    "",
+    "  [T] TELEPORT PAD - Instant transport to linked pad",
+    "      Color: Magenta background",
+    "      Effect: Jump to destination pad (2 second cooldown)",
+    "",
+    "  [~] STICKY FLOOR - Slows player movement",
+    "      Color: Yellow background",
+    "      Effect: Move only every 4 frames (4x slower)",
+    "",
+    "  [,] TALL GRASS - Reduces vision range",
+    "      Color: Green background",
+    "      Effect: Only see 2 tiles around player while inside",
+    "",
+    "=== POWER-UPS ===",
+    "",
+    "  [S] SHIELD - Negates next enemy collision",
+    "      Color: Cyan background",
+    "      Effect: One-time protection from enemy damage",
+    "",
+    "  [D] DOUBLE POINTS - Double totem values",
+    "      Color: Yellow background",
+    "      Effect: Lasts 10 seconds",
+    "",
+    "  [+] EXTRA LIFE - Gain one additional life",
+    "      Color: Bright green background",
+    "      Effect: Instant life bonus",
+    "",
+    "  [F] TIME FREEZE - Stops all enemy movement",
+    "      Color: Bright blue background",
+    "      Effect: Lasts 5 seconds",
+    "",
+    "TIPS:",
+    "  * Plan your route to collect totems efficiently",
+    "  * Watch enemy patterns before engaging",
+    "  * Use power-ups at critical moments",
+    "  * Teleport pads can be shortcuts or escapes",
+    "  * Avoid sticky floors when being chased",
+    "",
+    "Press [Q] to return to menu, [W/S] to scroll"
+  };
+
+  const int total_lines = sizeof(instruction_lines) / sizeof(instruction_lines[0]);
+  int scroll_offset = 0;
+  int visible_lines = W->rows - 4; // Leave room for borders and controls
+  int max_scroll = MAX(0, total_lines - visible_lines);
+
+  int c;
+  while (1) {
+    wclear(win);
+    box(win, 0, 0);
+
+    // Display visible portion of instructions
+    for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines; i++) {
+      const char *line = instruction_lines[scroll_offset + i];
+      mvwprintw(win, 2 + i, 2, "%.*s", W->cols - 4, line);
+    }
+
+    // Show scroll indicator if there's more content
+    if (scroll_offset > 0) {
+      mvwprintw(win, 1, W->cols - 15, "^ More above");
+    }
+    if (scroll_offset < max_scroll) {
+      mvwprintw(win, W->rows - 2, W->cols - 15, "v More below");
+    }
+
+    wrefresh(win);
+
+    c = wgetch(win);
+    switch (c) {
+    case UP:
+      if (scroll_offset > 0) {
+        scroll_offset--;
+      }
+      break;
+    case DOWN:
+      if (scroll_offset < max_scroll) {
+        scroll_offset++;
+      }
       break;
     case QUIT:
       return;

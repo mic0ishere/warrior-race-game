@@ -6,8 +6,9 @@
 // Menu options
 #define MENU_NEW_GAME 0
 #define MENU_RANKING 1
-#define MENU_EXIT 2
-#define MENU_ITEMS 3
+#define MENU_INSTRUCTIONS 2
+#define MENU_EXIT 3
+#define MENU_ITEMS 4
 
 // Maximum number of levels
 #define MAX_LEVELS 30
@@ -24,6 +25,9 @@ LEVEL *ShowLevelSelector(WIN *screenwin);
 
 // Show ranking screen (placeholder for now)
 void ShowRanking(WIN *screenwin);
+
+// Show instructions screen with game mechanics and legends
+void ShowInstructions(WIN *screenwin);
 
 // Scan levels directory and return list of level files
 int ScanLevels(char levels[][256]);
