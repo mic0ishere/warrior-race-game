@@ -170,19 +170,9 @@ PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
   obs.teleport_target_id = -1;
   obs.teleport_cooldown = 0;
   
-  int fields = sscanf(line, "%31s (%d,%d) (%d,%d) %d %d", 
+  sscanf(line, "%31s (%d,%d) (%d,%d) %d %d", 
                       type_str, &obs.pos1.x, &obs.pos1.y, 
                       &obs.pos2.x, &obs.pos2.y, &obs.teleport_id, &obs.teleport_target_id);
-  
-  if (fields < 3) {
-    obs.type = PASSIVE_TYPE_UNKNOWN;
-    fprintf(stderr, "Warning: PassiveObstacles[%d] parse error.\n", obs_id);
-    return obs;
-  }
-  
-  if (fields < 5) {
-    obs.pos2 = obs.pos1;
-  }
   
   if (strcmp(type_str, "TELEPORT") == 0) {
     obs.type = PASSIVE_TELEPORT_PAD;
