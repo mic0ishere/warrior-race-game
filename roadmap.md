@@ -25,7 +25,7 @@
     - extra life -> additional life
     - time freeze -> freeze all enemies for a short time
 
-- passive obstacles
+- passive obstacles ✅
     - teleport pads -> when entered, transport player to another part of the level
     - sticky floor -> slow down player movement
     - tall grass -> vision shrinks when inside (you only see 2 blocks around you)
