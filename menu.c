@@ -97,19 +97,15 @@ int ScanLevels(char levels[][256]) {
   }
 
   while ((entry = readdir(dir)) != NULL && count < MAX_LEVELS) {
-    // Check if file ends with .txt
     size_t len = strlen(entry->d_name);
-    if (len > 4 && strcmp(entry->d_name + len - 4, ".txt") == 0) {
+    if (len > 4 && len < 248 && strcmp(entry->d_name + len - 4, ".txt") == 0) {
       snprintf(levels[count], 256, "levels/%s", entry->d_name);
       count++;
     }
   }
 
   closedir(dir);
-
-  // Sort levels alphabetically using qsort
   qsort(levels, count, 256, compare_strings);
-
   return count;
 }
 
