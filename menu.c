@@ -301,85 +301,127 @@ void ShowRanking(WIN *W) {
   }
 }
 
+// Helper function to get color for entity symbol
+static int GetEntityColor(const char *symbol) {
+  if (strcmp(symbol, "[@]") == 0) return PLAYER_COLOR;
+  if (strcmp(symbol, "[T]") == 0) return TOTEM_COLOR;
+  if (strcmp(symbol, "[E]") == 0) return ENEMY_COLOR;
+  if (strcmp(symbol, "[^]") == 0) return SPIKE_COLOR;
+  if (strcmp(symbol, "[F]") == 0) return FIREJET_COLOR;
+  if (strcmp(symbol, "[~]") == 0) return STICKY_FLOOR_COLOR;
+  if (strcmp(symbol, "[,]") == 0) return TALL_GRASS_COLOR;
+  if (strcmp(symbol, "[S]") == 0) return POWERUP_SHIELD_COLOR;
+  if (strcmp(symbol, "[D]") == 0) return POWERUP_DOUBLE_COLOR;
+  if (strcmp(symbol, "[+]") == 0) return POWERUP_LIFE_COLOR;
+  return -1; // No color
+}
+
+// Helper function to render a line with colored entity symbols
+static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line, int max_width) {
+  int current_x = x;
+  const char *p = line;
+  char buffer[4] = {0}; // Buffer for potential entity symbol [X]
+  
+  while (*p && (current_x - x) < max_width) {
+    // Check if we're at the start of a potential entity symbol
+    if (*p == '[' && *(p + 1) && *(p + 2) == ']') {
+      buffer[0] = '[';
+      buffer[1] = *(p + 1);
+      buffer[2] = ']';
+      buffer[3] = '\0';
+      
+      int color = GetEntityColor(buffer);
+      if (color != -1) {
+        // Render with color
+        wmove(win, y, current_x);
+        wattron(win, COLOR_PAIR(color));
+        wprintw(win, "%s", buffer);
+        wattroff(win, COLOR_PAIR(color));
+        current_x += 3;
+        p += 3;
+      } else {
+        // Not a recognized entity, print normally
+        wmove(win, y, current_x);
+        wprintw(win, "%c", *p);
+        current_x++;
+        p++;
+      }
+    } else {
+      // Normal character
+      wmove(win, y, current_x);
+      wprintw(win, "%c", *p);
+      current_x++;
+      p++;
+    }
+  }
+}
+
 void ShowInstructions(WIN *W) {
   WINDOW *win = W->window;
   nodelay(win, FALSE);
 
-  // Define all instruction lines
-  const char *instruction_lines[] = {
-    "=== WARRIOR RACE - GAME INSTRUCTIONS ===",
-    "",
-    "OBJECTIVE:",
-    "  Collect totems to earn points and reach the win score before time",
-    "  runs out! Navigate the level, avoid enemies and obstacles, and use",
-    "  power-ups strategically.",
-    "",
-    "CONTROLS:",
-    "  W/A/S/D - Move player (Up/Left/Down/Right)",
-    "  P - Pause game",
-    "  Q - Quit to menu",
-    "",
-    "GAME MECHANICS:",
-    "  * Collect all totems [T] to earn points before time expires",
-    "  * Each life lost teleports you back to the starting position",
-    "  * Final score includes bonuses for remaining lives and time left",
-    "",
-    "=== ENEMIES ===",
-    "",
-    "  [E] PATROL - Moves back and forth along a set path",
-    "      Behavior: Predictable movement between two points",
-    "",
-    "  [E] RANDOM - Wanders randomly within bounds",
-    "      Behavior: Unpredictable movement pattern",
-    "",
-    "  [E] CHASER - Pursues player when in range",
-    "      Behavior: Actively hunts player within chase radius",
-    "      Note: Blue when sleeping, bright red when chasing",
-    "",
-    "  [E] TELEPORTER - Randomly teleports around level",
-    "      Behavior: Dangerous and unpredictable positioning",
-    "      Note: Flashes magenta before teleporting",
-    "",
-    "=== AGGRESSIVE OBSTACLES ===",
-    "They remain active all the time and activate at set intervals.",
-    "",
-    "  [^] SPIKE - Harms player when player steps onto them",
-    "",
-    "  [F] FIREJET - Shoots fire in straight line",
-    "",
-    "=== PASSIVE OBSTACLES ===",
-    "",
-    "  [T] TELEPORT PAD - Instant transport to linked pad",
-    "      Effect: Jump to destination pad (2 second cooldown)",
-    "",
-    "  [~] STICKY FLOOR - Slows player movement",
-    "      Effect: Movement 4x slower",
-    "",
-    "  [,] TALL GRASS - Reduces vision range",
-    "      Effect: Only see 2 tiles around player while inside",
-    "",
-    "=== POWER-UPS ===",
-    "",
-    "  [S] SHIELD - Negates next enemy collision",
-    "      Effect: One-time protection from enemy damage",
-    "",
-    "  [D] DOUBLE POINTS - Double totem values",
-    "      Effect: Lasts 10 seconds",
-    "",
-    "  [+] EXTRA LIFE - Gain one additional life",
-    "      Effect: Instant life bonus",
-    "",
-    "  [F] TIME FREEZE - Stops all enemy movement",
-    "      Effect: Lasts 5 seconds",
-    "",
-    "TIPS:",
-    "  * Plan your route to collect totems efficiently",
-    "  * Watch enemy patterns before engaging",
-    "  * Teleport pads can be shortcuts or escapes",
-    "  * Avoid sticky floors when being chased"
-  };
+  // Load instructions from file
+  FILE *fp = fopen("instructions.txt", "r");
+  if (!fp) {
+    // Fallback error message
+    wclear(win);
+    box(win, 0, 0);
+    const char *error_msg = "Error: Could not load instructions.txt";
+    mvwprintw(win, W->rows / 2, (W->cols - strlen(error_msg)) / 2, "%s", error_msg);
+    wrefresh(win);
+    wgetch(win);
+    return;
+  }
 
-  const int total_lines = sizeof(instruction_lines) / sizeof(instruction_lines[0]);
+  // Read all lines from file
+  char **instruction_lines = NULL;
+  int total_lines = 0;
+  int capacity = 100;
+  instruction_lines = (char **)malloc(capacity * sizeof(char *));
+  if (!instruction_lines) {
+    fclose(fp);
+    return;
+  }
+
+  char line_buffer[256];
+  while (fgets(line_buffer, sizeof(line_buffer), fp)) {
+    // Remove newline
+    size_t len = strlen(line_buffer);
+    if (len > 0 && line_buffer[len - 1] == '\n') {
+      line_buffer[len - 1] = '\0';
+    }
+    
+    // Allocate and copy line
+    instruction_lines[total_lines] = (char *)malloc(strlen(line_buffer) + 1);
+    if (!instruction_lines[total_lines]) {
+      // Cleanup on error
+      for (int i = 0; i < total_lines; i++) {
+        free(instruction_lines[i]);
+      }
+      free(instruction_lines);
+      fclose(fp);
+      return;
+    }
+    strcpy(instruction_lines[total_lines], line_buffer);
+    total_lines++;
+    
+    // Expand capacity if needed
+    if (total_lines >= capacity) {
+      capacity *= 2;
+      char **new_lines = (char **)realloc(instruction_lines, capacity * sizeof(char *));
+      if (!new_lines) {
+        for (int i = 0; i < total_lines; i++) {
+          free(instruction_lines[i]);
+        }
+        free(instruction_lines);
+        fclose(fp);
+        return;
+      }
+      instruction_lines = new_lines;
+    }
+  }
+  fclose(fp);
+
   int scroll_offset = 0;
   int visible_lines = W->rows - 5; // Leave room for borders and fixed navigation
   int max_scroll = MAX(0, total_lines - visible_lines);
@@ -389,93 +431,11 @@ void ShowInstructions(WIN *W) {
     wclear(win);
     box(win, 0, 0);
 
-    // Display visible portion of instructions with colors
+    // Display visible portion of instructions with dynamically colored entities
     for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines; i++) {
       const char *line = instruction_lines[scroll_offset + i];
       int line_y = 2 + i;
-      
-      // Check if line contains colored entities and render them with colors
-      if (strstr(line, "[E]") && strstr(line, "PATROL")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, "[E]");
-        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, " PATROL - Moves back and forth along a set path");
-      } else if (strstr(line, "[E]") && strstr(line, "RANDOM")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, "[E]");
-        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, " RANDOM - Wanders randomly within bounds");
-      } else if (strstr(line, "[E]") && strstr(line, "CHASER")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(CHASER_SLEEPING_COLOR));
-        wprintw(win, "[E]");
-        wattroff(win, COLOR_PAIR(CHASER_SLEEPING_COLOR));
-        wprintw(win, " CHASER - Pursues player when in range");
-      } else if (strstr(line, "[E]") && strstr(line, "TELEPORTER")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, "[E]");
-        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
-        wprintw(win, " TELEPORTER - Randomly teleports around level");
-      } else if (strstr(line, "[^]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(SPIKE_COLOR));
-        wprintw(win, "[^]");
-        wattroff(win, COLOR_PAIR(SPIKE_COLOR));
-        wprintw(win, " SPIKE - Harms player from specific direction");
-      } else if (strstr(line, "[#]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(FIREJET_COLOR));
-        wprintw(win, "[#]");
-        wattroff(win, COLOR_PAIR(FIREJET_COLOR));
-        wprintw(win, " FIREJET - Shoots fire in straight line");
-      } else if (strstr(line, "[T]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(TELEPORT_PAD_COLOR));
-        wprintw(win, "[T]");
-        wattroff(win, COLOR_PAIR(TELEPORT_PAD_COLOR));
-        wprintw(win, " TELEPORT PAD - Instant transport to linked pad");
-      } else if (strstr(line, "[~]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(STICKY_FLOOR_COLOR));
-        wprintw(win, "[~]");
-        wattroff(win, COLOR_PAIR(STICKY_FLOOR_COLOR));
-        wprintw(win, " STICKY FLOOR - Slows player movement");
-      } else if (strstr(line, "[,]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(TALL_GRASS_COLOR));
-        wprintw(win, "[,]");
-        wattroff(win, COLOR_PAIR(TALL_GRASS_COLOR));
-        wprintw(win, " TALL GRASS - Reduces vision range");
-      } else if (strstr(line, "[S]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(POWERUP_SHIELD_COLOR));
-        wprintw(win, "[S]");
-        wattroff(win, COLOR_PAIR(POWERUP_SHIELD_COLOR));
-        wprintw(win, " SHIELD - Negates next enemy collision");
-      } else if (strstr(line, "[D]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(POWERUP_DOUBLE_COLOR));
-        wprintw(win, "[D]");
-        wattroff(win, COLOR_PAIR(POWERUP_DOUBLE_COLOR));
-        wprintw(win, " DOUBLE POINTS - Double totem values");
-      } else if (strstr(line, "[+]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(POWERUP_LIFE_COLOR));
-        wprintw(win, "[+]");
-        wattroff(win, COLOR_PAIR(POWERUP_LIFE_COLOR));
-        wprintw(win, " EXTRA LIFE - Gain one additional life");
-      } else if (strstr(line, "[F]")) {
-        mvwprintw(win, line_y, 2, "  ");
-        wattron(win, COLOR_PAIR(POWERUP_FREEZE_COLOR));
-        wprintw(win, "[F]");
-        wattroff(win, COLOR_PAIR(POWERUP_FREEZE_COLOR));
-        wprintw(win, " TIME FREEZE - Stops all enemy movement");
-      } else {
-        mvwprintw(win, line_y, 2, "%.*s", W->cols - 4, line);
-      }
+      RenderLineWithColors(win, line_y, 2, line, W->cols - 4);
     }
 
     // Show scroll indicator if there's more content
@@ -505,6 +465,11 @@ void ShowInstructions(WIN *W) {
       }
       break;
     case QUIT:
+      // Cleanup
+      for (int i = 0; i < total_lines; i++) {
+        free(instruction_lines[i]);
+      }
+      free(instruction_lines);
       return;
     default:
       break;

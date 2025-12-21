@@ -1,0 +1,70 @@
+=== WARRIOR RACE - GAME INSTRUCTIONS ===
+
+OBJECTIVE:
+  Collect totems [@] to earn points and reach the win score before time
+  runs out! Navigate the level, avoid enemies and obstacles, and use
+  power-ups strategically.
+
+CONTROLS:
+  W/A/S/D - Move player (Up/Left/Down/Right)
+  P - Pause game
+  Q - Quit to menu
+
+GAME MECHANICS:
+  * Collect all totems [T] to earn points before time expires
+  * Each life lost teleports you back to the starting position
+  * Final score includes bonuses for remaining lives and time left
+
+=== ENEMIES ===
+
+  [E] PATROL - Moves back and forth along a set path
+      Behavior: Predictable movement between two points
+
+  [E] RANDOM - Wanders randomly within bounds
+      Behavior: Unpredictable movement pattern
+
+  [E] CHASER - Pursues player when in range
+      Behavior: Actively hunts player within chase radius
+      Note: Blue when sleeping, bright red when chasing
+
+  [E] TELEPORTER - Randomly teleports around level
+      Behavior: Dangerous and unpredictable positioning
+      Note: Flashes magenta before teleporting
+
+=== AGGRESSIVE OBSTACLES ===
+They remain active all the time and activate at set intervals.
+
+  [^] SPIKE - Harms player when player steps onto them
+
+  [F] FIREJET - Shoots fire in straight line
+
+=== PASSIVE OBSTACLES ===
+
+  [T] TELEPORT PAD - Instant transport to linked pad
+      Effect: Jump to destination pad (2 second cooldown)
+
+  [~] STICKY FLOOR - Slows player movement
+      Effect: Movement 4x slower
+
+  [,] TALL GRASS - Reduces vision range
+      Effect: Only see 2 tiles around player while inside
+
+=== POWER-UPS ===
+
+  [S] SHIELD - Negates next enemy collision
+      Effect: One-time protection from enemy damage
+
+  [D] DOUBLE POINTS - Double totem values
+      Effect: Lasts 10 seconds
+
+  [+] EXTRA LIFE - Gain one additional life
+      Effect: Instant life bonus
+
+  [F] TIME FREEZE - Stops all enemy movement
+      Effect: Lasts 5 seconds
+
+TIPS:
+  * Plan your route to collect totems efficiently
+  * Watch enemy patterns before engaging
+  * Teleport pads can be shortcuts or escapes
+  * Avoid sticky floors when being chased
