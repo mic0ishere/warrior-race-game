@@ -63,13 +63,13 @@ LIFE (27,27)
 FREEZE (15,5)
 
 [PASSIVE_OBSTACLES]
-# Teleport pads - shortcuts across the level
-# Format: TELEPORT (x,y) (x,y) my_id target_id
+# GRASS (x1,y1) (x2,y2) - shrinks visibility
+# STICKY (x1,y1) (x2,y2) - slows player movement
+# TELEPORT (x,y) (x,y) my_id target_id - teleport pads
+
 TELEPORT (2,28) (2,28) 0 1
 TELEPORT (28,2) (28,2) 1 0
 
-# Sticky floor - challenge areas
 STICKY (15,8) (17,11)
 
-# Tall grass - exploration area
 GRASS (20,17) (29,23)

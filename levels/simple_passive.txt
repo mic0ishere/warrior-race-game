@@ -25,13 +25,13 @@ PATROL (5,5) (15,5) (5,5) 1
 [POWERUPS]
 
 [PASSIVE_OBSTACLES]
-# Testing teleport pads - pair of pads linked to each other
-# Format: TELEPORT (x,y) (x,y) my_id target_id
+# GRASS (x1,y1) (x2,y2) - shrinks visibility
+# STICKY (x1,y1) (x2,y2) - slows player movement
+# TELEPORT (x,y) (x,y) my_id target_id - teleport pads
+
 TELEPORT (5,15) (5,15) 0 1
 TELEPORT (20,5) (20,5) 1 0
 
-# Testing sticky floor - small area
 STICKY (10,5) (14,8)
 
-# Testing tall grass - corner area
 GRASS (15,12) (22,18)
