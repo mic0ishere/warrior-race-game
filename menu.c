@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "instructions.h"
 #include "level.h"
 #include "ranking.h"
 #include "window.h"
@@ -10,8 +11,8 @@
 #include <unistd.h>
 
 // Main menu items
-static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
-                                             "Exit"};
+static const char *menu_items[MENU_ITEMS] = {"New Game", "Read Instructions",
+                                             "View Ranking", "Exit"};
 
 // Instructions string
 static const char *instructions =
@@ -292,6 +293,134 @@ void ShowRanking(WIN *W) {
       break;
     case RIGHT:
       current_level = (current_level + 1) % num_levels;
+      break;
+    case QUIT:
+      return;
+    default:
+      break;
+    }
+  }
+}
+
+static int GetEntityColor(const char symbol) {
+  switch (symbol) {
+  case '@':
+    return PLAYER_COLOR;
+  case 'T':
+    return TOTEM_COLOR;
+  case 'E':
+    return ENEMY_COLOR;
+  case '^':
+    return SPIKE_COLOR;
+  case 'F':
+    return FIREJET_COLOR;
+  case 'P':
+    return TELEPORT_PAD_COLOR;
+  case '~':
+    return STICKY_FLOOR_COLOR;
+  case ',':
+    return TALL_GRASS_COLOR;
+  case 'S':
+    return POWERUP_SHIELD_COLOR;
+  case 'D':
+    return POWERUP_DOUBLE_COLOR;
+  case '+':
+    return POWERUP_LIFE_COLOR;
+  default:
+    break;
+  }
+
+  return -1; // No color
+}
+
+static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
+                                 int max_width) {
+  int current_x = x;
+  const char *current = line;
+
+  while (*current && (current_x - x) < max_width) {
+    int found_entity = FALSE;
+
+    // Entity symbols are patterns like [@], [T], [E], etc.
+    if (current[0] == '[' && current[1] != '\0' && current[2] == ']') {
+      int color = GetEntityColor(current[1]);
+
+      // Special case: differentiate between FIREJET and TIME FREEZE power-up
+      if (color == FIREJET_COLOR && strstr(line, "[F] TIME FREEZE") != NULL) {
+        color = POWERUP_FREEZE_COLOR;
+      }
+
+      if (color > 0) {
+        wattron(win, COLOR_PAIR(color));
+        mvwaddch(win, y, current_x, *"[");
+        mvwaddch(win, y, current_x + 1, current[1]);
+        mvwaddch(win, y, current_x + 2, *"]");
+        wattroff(win, COLOR_PAIR(color));
+        
+        current += 3;
+        current_x += 3;
+        found_entity = TRUE;
+      }
+    }
+
+    if (!found_entity) {
+      // Regular character - print it at specific coordinate
+      mvwaddch(win, y, current_x, *current);
+      current++;
+      current_x++;
+    }
+  }
+}
+
+void ShowInstructions(WIN *W) {
+  WINDOW *win = W->window;
+  nodelay(win, FALSE);
+
+  const int total_lines =
+      sizeof(GAME_INSTRUCTIONS) / sizeof(GAME_INSTRUCTIONS[0]);
+
+  int scroll_offset = 0;
+  int visible_lines = W->rows - 5;
+  int max_scroll = MAX(0, total_lines - visible_lines);
+
+  int c;
+  while (1) {
+    wclear(win);
+    box(win, 0, 0);
+
+    // Display visible portion of instructions with dynamically colored entities
+    for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines;
+         i++) {
+      const char *line = GAME_INSTRUCTIONS[scroll_offset + i];
+      RenderLineWithColors(win, i + 2, 2, line, W->cols - 4);
+    }
+
+    // Show scroll indicator if there's more content
+    if (scroll_offset > 0) {
+      mvwprintw(win, 1, W->cols - 15, "^ More above");
+    }
+    if (scroll_offset < max_scroll) {
+      mvwprintw(win, W->rows - 3, W->cols - 15, "v More below");
+    }
+
+    // Fixed navigation info at bottom
+    const char *nav_info = "Use [W/S] to scroll, [Q] to return to menu";
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(nav_info)) / 2, "%s",
+              nav_info);
+
+    wrefresh(win);
+
+    c = wgetch(win);
+    switch (c) {
+    case UP:
+      if (scroll_offset > 0) {
+        scroll_offset--;
+      }
+      break;
+    case DOWN:
+      if (scroll_offset < max_scroll) {
+        scroll_offset++;
+      }
       break;
     case QUIT:
       return;
