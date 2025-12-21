@@ -308,6 +308,7 @@ static int GetEntityColor(const char *symbol) {
   if (strcmp(symbol, "[E]") == 0) return ENEMY_COLOR;
   if (strcmp(symbol, "[^]") == 0) return SPIKE_COLOR;
   if (strcmp(symbol, "[F]") == 0) return FIREJET_COLOR;
+  if (strcmp(symbol, "[P]") == 0) return TELEPORT_PAD_COLOR;
   if (strcmp(symbol, "[~]") == 0) return STICKY_FLOOR_COLOR;
   if (strcmp(symbol, "[,]") == 0) return TALL_GRASS_COLOR;
   if (strcmp(symbol, "[S]") == 0) return POWERUP_SHIELD_COLOR;
@@ -383,7 +384,7 @@ void ShowInstructions(WIN *W) {
     return;
   }
 
-  char line_buffer[256];
+  char line_buffer[512];
   while (fgets(line_buffer, sizeof(line_buffer), fp)) {
     // Remove newline
     size_t len = strlen(line_buffer);

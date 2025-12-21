@@ -1,12 +1,12 @@
 === WARRIOR RACE - GAME INSTRUCTIONS ===
 
 OBJECTIVE:
-  Collect totems [@] to earn points and reach the win score before time
+  Collect totems [T] to earn points and reach the win score before time
   runs out! Navigate the level, avoid enemies and obstacles, and use
   power-ups strategically.
 
 CONTROLS:
-  W/A/S/D - Move player (Up/Left/Down/Right)
+  W/A/S/D - Move player [@] (Up/Left/Down/Right)
   P - Pause game
   Q - Quit to menu
 
@@ -40,7 +40,7 @@ They remain active all the time and activate at set intervals.
 
 === PASSIVE OBSTACLES ===
 
-  [T] TELEPORT PAD - Instant transport to linked pad
+  [P] TELEPORT PAD - Instant transport to linked pad
       Effect: Jump to destination pad (2 second cooldown)
 
   [~] STICKY FLOOR - Slows player movement
