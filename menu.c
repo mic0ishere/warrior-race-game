@@ -333,42 +333,41 @@ static int GetEntityColor(const char *symbol) {
 // Entity symbols like [E], [T], [@] are colored, rest is rendered normally
 static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
                                  int max_width) {
-  wmove(win, y, x); // Move cursor to starting position
-  
-  int chars_printed = 0;
+  int current_x = x;
   const char *current = line;
   
-  while (*current && chars_printed < max_width) {
-    // Check for entity symbol pattern: [X] (exactly 3 characters)
-    if (current[0] == '[' && current[1] != '\0' && current[2] == ']') {
-      // Extract the 3-character symbol
+  while (*current && (current_x - x) < max_width) {
+    int found_entity = 0;
+    
+    // Use strstr to check if we might have an entity symbol at this position
+    // Entity symbols are patterns like [@], [T], [E], etc.
+    if (strstr(current, "[") == current && current[1] != '\0' && current[2] == ']') {
+      // Build the potential entity symbol
       char symbol[4];
       symbol[0] = current[0];
       symbol[1] = current[1];
       symbol[2] = current[2];
       symbol[3] = '\0';
       
-      // Try to get color for this symbol
+      // Check if this is a known entity symbol
       int color = GetEntityColor(symbol);
       
       if (color != -1) {
-        // This is a known entity - print it with color
+        // This is a known entity - print it with color at specific coordinate
         wattron(win, COLOR_PAIR(color));
-        waddstr(win, symbol);
+        mvwaddstr(win, y, current_x, symbol);
         wattroff(win, COLOR_PAIR(color));
         current += 3;
-        chars_printed += 3;
-      } else {
-        // Unknown pattern - just print the '[' character normally
-        waddch(win, *current);
-        current++;
-        chars_printed++;
+        current_x += 3;
+        found_entity = 1;
       }
-    } else {
-      // Regular character - print it normally
-      waddch(win, *current);
+    }
+    
+    if (!found_entity) {
+      // Regular character - print it at specific coordinate
+      mvwaddch(win, y, current_x, *current);
       current++;
-      chars_printed++;
+      current_x++;
     }
   }
 }
