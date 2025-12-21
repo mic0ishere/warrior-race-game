@@ -30,6 +30,7 @@ SPIKE (10,5) UP 2
 SPIKE (20,10) DOWN 2
 
 # FIREJET (x,y) direction interval length
+# length: how far fire travels
 FIREJET (5,12) RIGHT 2 6
 FIREJET (18,18) LEFT 2.5 5
 
