@@ -330,42 +330,45 @@ static int GetEntityColor(const char *symbol) {
 }
 
 // Helper function to render a line with colored entity symbols
+// Entity symbols like [E], [T], [@] are colored, rest is rendered normally
 static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
                                  int max_width) {
-  int current_x = x;
-  const char *p = line;
-  char buffer[4] = {0}; // Buffer for potential entity symbol [X]
-
-  while (*p && (current_x - x) < max_width) {
-    // Check if we're at the start of a potential entity symbol
-    if (*p == '[' && *(p + 1) && *(p + 2) == ']') {
-      buffer[0] = '[';
-      buffer[1] = *(p + 1);
-      buffer[2] = ']';
-      buffer[3] = '\0';
-
-      int color = GetEntityColor(buffer);
+  wmove(win, y, x); // Move cursor to starting position
+  
+  int chars_printed = 0;
+  const char *current = line;
+  
+  while (*current && chars_printed < max_width) {
+    // Check for entity symbol pattern: [X] (exactly 3 characters)
+    if (current[0] == '[' && current[1] != '\0' && current[2] == ']') {
+      // Extract the 3-character symbol
+      char symbol[4];
+      symbol[0] = current[0];
+      symbol[1] = current[1];
+      symbol[2] = current[2];
+      symbol[3] = '\0';
+      
+      // Try to get color for this symbol
+      int color = GetEntityColor(symbol);
+      
       if (color != -1) {
-        // Render with color
-        wmove(win, y, current_x);
+        // This is a known entity - print it with color
         wattron(win, COLOR_PAIR(color));
-        wprintw(win, "%s", buffer);
+        waddstr(win, symbol);
         wattroff(win, COLOR_PAIR(color));
-        current_x += 3;
-        p += 3;
+        current += 3;
+        chars_printed += 3;
       } else {
-        // Not a recognized entity, print normally
-        wmove(win, y, current_x);
-        wprintw(win, "%c", *p);
-        current_x++;
-        p++;
+        // Unknown pattern - just print the '[' character normally
+        waddch(win, *current);
+        current++;
+        chars_printed++;
       }
     } else {
-      // Normal character
-      wmove(win, y, current_x);
-      wprintw(win, "%c", *p);
-      current_x++;
-      p++;
+      // Regular character - print it normally
+      waddch(win, *current);
+      current++;
+      chars_printed++;
     }
   }
 }
