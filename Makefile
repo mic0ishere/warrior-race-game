@@ -13,7 +13,7 @@ SOURCES = main.c window.c level.c game.c menu.c ranking.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Header files
-HEADERS = types.h window.h level.h game.h menu.h ranking.h
+HEADERS = types.h window.h level.h game.h menu.h ranking.h instructions.h
 
 # Default target
 all: $(TARGET)

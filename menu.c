@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "instructions.h"
 #include "level.h"
 #include "ranking.h"
 #include "window.h"
@@ -303,26 +304,38 @@ void ShowRanking(WIN *W) {
 
 // Helper function to get color for entity symbol
 static int GetEntityColor(const char *symbol) {
-  if (strcmp(symbol, "[@]") == 0) return PLAYER_COLOR;
-  if (strcmp(symbol, "[T]") == 0) return TOTEM_COLOR;
-  if (strcmp(symbol, "[E]") == 0) return ENEMY_COLOR;
-  if (strcmp(symbol, "[^]") == 0) return SPIKE_COLOR;
-  if (strcmp(symbol, "[F]") == 0) return FIREJET_COLOR;
-  if (strcmp(symbol, "[P]") == 0) return TELEPORT_PAD_COLOR;
-  if (strcmp(symbol, "[~]") == 0) return STICKY_FLOOR_COLOR;
-  if (strcmp(symbol, "[,]") == 0) return TALL_GRASS_COLOR;
-  if (strcmp(symbol, "[S]") == 0) return POWERUP_SHIELD_COLOR;
-  if (strcmp(symbol, "[D]") == 0) return POWERUP_DOUBLE_COLOR;
-  if (strcmp(symbol, "[+]") == 0) return POWERUP_LIFE_COLOR;
+  if (strcmp(symbol, "[@]") == 0)
+    return PLAYER_COLOR;
+  if (strcmp(symbol, "[T]") == 0)
+    return TOTEM_COLOR;
+  if (strcmp(symbol, "[E]") == 0)
+    return ENEMY_COLOR;
+  if (strcmp(symbol, "[^]") == 0)
+    return SPIKE_COLOR;
+  if (strcmp(symbol, "[F]") == 0)
+    return FIREJET_COLOR;
+  if (strcmp(symbol, "[P]") == 0)
+    return TELEPORT_PAD_COLOR;
+  if (strcmp(symbol, "[~]") == 0)
+    return STICKY_FLOOR_COLOR;
+  if (strcmp(symbol, "[,]") == 0)
+    return TALL_GRASS_COLOR;
+  if (strcmp(symbol, "[S]") == 0)
+    return POWERUP_SHIELD_COLOR;
+  if (strcmp(symbol, "[D]") == 0)
+    return POWERUP_DOUBLE_COLOR;
+  if (strcmp(symbol, "[+]") == 0)
+    return POWERUP_LIFE_COLOR;
   return -1; // No color
 }
 
 // Helper function to render a line with colored entity symbols
-static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line, int max_width) {
+static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
+                                 int max_width) {
   int current_x = x;
   const char *p = line;
   char buffer[4] = {0}; // Buffer for potential entity symbol [X]
-  
+
   while (*p && (current_x - x) < max_width) {
     // Check if we're at the start of a potential entity symbol
     if (*p == '[' && *(p + 1) && *(p + 2) == ']') {
@@ -330,7 +343,7 @@ static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line, in
       buffer[1] = *(p + 1);
       buffer[2] = ']';
       buffer[3] = '\0';
-      
+
       int color = GetEntityColor(buffer);
       if (color != -1) {
         // Render with color
@@ -361,70 +374,11 @@ void ShowInstructions(WIN *W) {
   WINDOW *win = W->window;
   nodelay(win, FALSE);
 
-  // Load instructions from file
-  FILE *fp = fopen("instructions.txt", "r");
-  if (!fp) {
-    // Fallback error message
-    wclear(win);
-    box(win, 0, 0);
-    const char *error_msg = "Error: Could not load instructions.txt";
-    mvwprintw(win, W->rows / 2, (W->cols - strlen(error_msg)) / 2, "%s", error_msg);
-    wrefresh(win);
-    wgetch(win);
-    return;
-  }
-
-  // Read all lines from file
-  char **instruction_lines = NULL;
-  int total_lines = 0;
-  int capacity = 100;
-  instruction_lines = (char **)malloc(capacity * sizeof(char *));
-  if (!instruction_lines) {
-    fclose(fp);
-    return;
-  }
-
-  char line_buffer[512];
-  while (fgets(line_buffer, sizeof(line_buffer), fp)) {
-    // Remove newline
-    size_t len = strlen(line_buffer);
-    if (len > 0 && line_buffer[len - 1] == '\n') {
-      line_buffer[len - 1] = '\0';
-    }
-    
-    // Allocate and copy line
-    instruction_lines[total_lines] = (char *)malloc(strlen(line_buffer) + 1);
-    if (!instruction_lines[total_lines]) {
-      // Cleanup on error
-      for (int i = 0; i < total_lines; i++) {
-        free(instruction_lines[i]);
-      }
-      free(instruction_lines);
-      fclose(fp);
-      return;
-    }
-    strcpy(instruction_lines[total_lines], line_buffer);
-    total_lines++;
-    
-    // Expand capacity if needed
-    if (total_lines >= capacity) {
-      capacity *= 2;
-      char **new_lines = (char **)realloc(instruction_lines, capacity * sizeof(char *));
-      if (!new_lines) {
-        for (int i = 0; i < total_lines; i++) {
-          free(instruction_lines[i]);
-        }
-        free(instruction_lines);
-        fclose(fp);
-        return;
-      }
-      instruction_lines = new_lines;
-    }
-  }
-  fclose(fp);
+  const int total_lines =
+      sizeof(GAME_INSTRUCTIONS) / sizeof(GAME_INSTRUCTIONS[0]);
 
   int scroll_offset = 0;
-  int visible_lines = W->rows - 5; // Leave room for borders and fixed navigation
+  int visible_lines = W->rows - 5;
   int max_scroll = MAX(0, total_lines - visible_lines);
 
   int c;
@@ -433,10 +387,10 @@ void ShowInstructions(WIN *W) {
     box(win, 0, 0);
 
     // Display visible portion of instructions with dynamically colored entities
-    for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines; i++) {
-      const char *line = instruction_lines[scroll_offset + i];
-      int line_y = 2 + i;
-      RenderLineWithColors(win, line_y, 2, line, W->cols - 4);
+    for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines;
+         i++) {
+      const char *line = GAME_INSTRUCTIONS[scroll_offset + i];
+      RenderLineWithColors(win, i + 2, 2, line, W->cols - 4);
     }
 
     // Show scroll indicator if there's more content
@@ -449,7 +403,8 @@ void ShowInstructions(WIN *W) {
 
     // Fixed navigation info at bottom
     const char *nav_info = "Use [W/S] to scroll, [Q] to return to menu";
-    mvwprintw(win, W->rows - 2, (W->cols - strlen(nav_info)) / 2, "%s", nav_info);
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(nav_info)) / 2, "%s",
+              nav_info);
 
     wrefresh(win);
 
@@ -466,11 +421,6 @@ void ShowInstructions(WIN *W) {
       }
       break;
     case QUIT:
-      // Cleanup
-      for (int i = 0; i < total_lines; i++) {
-        free(instruction_lines[i]);
-      }
-      free(instruction_lines);
       return;
     default:
       break;
