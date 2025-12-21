@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 // Main menu items
-static const char *menu_items[MENU_ITEMS] = {"New Game", "Instructions",
+static const char *menu_items[MENU_ITEMS] = {"New Game", "Read Instructions",
                                              "View Ranking", "Exit"};
 
 // Instructions string
@@ -320,10 +320,9 @@ void ShowInstructions(WIN *W) {
     "  Q - Quit to menu",
     "",
     "GAME MECHANICS:",
-    "  * Collect totems (@) to earn points",
-    "  * Reach WIN_SCORE points before time expires",
-    "  * Each life lost gives you a brief invulnerability period",
-    "  * Final score includes bonuses for remaining lives and time",
+    "  * Collect all totems [T] to earn points before time expires",
+    "  * Each life lost teleports you back to the starting position",
+    "  * Final score includes bonuses for remaining lives and time left",
     "",
     "=== ENEMIES ===",
     "",
@@ -342,14 +341,11 @@ void ShowInstructions(WIN *W) {
     "      Note: Flashes magenta before teleporting",
     "",
     "=== AGGRESSIVE OBSTACLES ===",
+    "They remain active all the time and activate at set intervals.",
     "",
-    "  [^] SPIKE - Harms player from specific direction",
-    "      Behavior: Activates at regular intervals",
-    "      Danger: Only harmful when moving INTO spike direction",
+    "  [^] SPIKE - Harms player when player steps onto them",
     "",
-    "  [#] FIREJET - Shoots fire in straight line",
-    "      Behavior: Emits fire at set intervals",
-    "      Danger: Fire travels multiple tiles in one direction",
+    "  [F] FIREJET - Shoots fire in straight line",
     "",
     "=== PASSIVE OBSTACLES ===",
     "",
@@ -379,7 +375,6 @@ void ShowInstructions(WIN *W) {
     "TIPS:",
     "  * Plan your route to collect totems efficiently",
     "  * Watch enemy patterns before engaging",
-    "  * Use power-ups at critical moments",
     "  * Teleport pads can be shortcuts or escapes",
     "  * Avoid sticky floors when being chased"
   };
