@@ -371,7 +371,7 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
       color = POWERUP_DOUBLE_COLOR;
       break;
     case POWERUP_EXTRA_LIFE:
-      symbol = "L";
+      symbol = "+";
       color = POWERUP_LIFE_COLOR;
       break;
     case POWERUP_TIME_FREEZE:
