@@ -449,19 +449,19 @@ void CheckPassiveObstacles(GAMESTATE *state) {
 void FinishGame(WIN *playwin, GAMESTATE *state) {
   switch (state->status) {
   case GAME_TIMEOUT:
-    EndGame(playwin, "Time's up!", END_LOSE_COLOR);
+    EndGame(playwin, "Time's up!", FALSE);
     break;
   case OUT_OF_LIFES:
-    EndGame(playwin, "Out of lifes!", END_LOSE_COLOR);
+    EndGame(playwin, "Out of lifes!", FALSE);
     break;
   case USER_QUIT:
-    EndGame(playwin, "You quit the game.", END_LOSE_COLOR);
+    EndGame(playwin, "You quit the game.", FALSE);
     break;
   case CONTINUE:
-    EndGame(playwin, "Game ended unexpectedly.", END_LOSE_COLOR);
+    EndGame(playwin, "Game ended unexpectedly.", FALSE);
     break;
   case WIN_POINTS:
-    EndGame(playwin, "You collected enough points!", END_WIN_COLOR);
+    EndGame(playwin, "You collected enough points!", TRUE);
     break;
   }
 
@@ -472,7 +472,6 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
 
   SaveRanking(state->level->level_name, state);
 
-  int final_score = CalculateFinalScore(state);
   int time_left = MAX(0, state->level->time_limit - state->time_elapsed);
 
   char score_msg[COLS];
@@ -482,6 +481,8 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
            FINAL_SCORE_TIME_BONUS);
   mvwprintw(playwin->window, playwin->rows / 2 + 1,
             (playwin->cols - strlen(score_msg)) / 2, "%s", score_msg);
+
+  int final_score = CalculateFinalScore(state);
 
   char final_msg[COLS];
   snprintf(final_msg, sizeof(final_msg), "Final Score: %d", final_score);

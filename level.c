@@ -37,9 +37,9 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   char type_str[32] = "";
   POSITION start_pos = {0, 0};
 
-  // Initialize new fields
+  enemy.type = ENEMY_TYPE_UNKNOWN;
   enemy.last_teleport_frame = 0;
-  enemy.chase_radius = 10; // Default chase radius
+  enemy.chase_radius = 10;
   enemy.is_chasing = FALSE;
   enemy.direction = rand() % 2 == 0 ? DIR_FORWARD : DIR_BACKWARD;
 
@@ -50,9 +50,8 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   // Validate and clamp speed
   int verified_speed = MIN(MAX(enemy.speed, 1), 5);
   if (verified_speed != enemy.speed) {
-    fprintf(stderr,
-            "Warning: Enemies[%d] speed %d out of bounds. Clamped to %d.\n",
-            enemy_id, enemy.speed, verified_speed);
+    fprintf(stderr, "Warning: Enemies[%d] speed clamped to %d.\n", enemy_id,
+            verified_speed);
     enemy.speed = verified_speed;
   }
 
@@ -74,25 +73,17 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
 
     if (range_x > 0 && range_y > 0) {
       enemy.type = ENEMY_TELEPORTER;
-    } else {
-      fprintf(stderr,
-              "Warning: Teleporter enemy %d with invalid teleport bounds.\n",
-              enemy_id);
-      enemy.type = ENEMY_TYPE_UNKNOWN;
     }
   } else if (strcmp(type_str, "PATROL") == 0) {
     if (enemy.pos1.y == enemy.pos2.y) {
       enemy.type = ENEMY_PATROL_HORIZONTAL;
     } else if (enemy.pos1.x == enemy.pos2.x) {
       enemy.type = ENEMY_PATROL_VERTICAL;
-    } else {
-      enemy.type = ENEMY_TYPE_UNKNOWN;
-      fprintf(stderr, "Warning: Patrol enemy %d with invalid patrol bounds.\n",
-              enemy_id);
     }
-  } else {
-    enemy.type = ENEMY_TYPE_UNKNOWN;
-    fprintf(stderr, "Warning: Enemies[%d] with unknown patrol type.\n",
+  }
+
+  if (enemy.type == ENEMY_TYPE_UNKNOWN) {
+    fprintf(stderr, "Warning: Enemies[%d] with unknown or invalid type.\n",
             enemy_id);
   }
 
@@ -165,15 +156,14 @@ POWERUP LoadPowerup(const char *line, int powerup_id) {
 PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
   PASSIVE_OBSTACLE obs;
   char type_str[32] = "";
-  
+
   obs.teleport_id = -1;
   obs.teleport_target_id = -1;
   obs.teleport_cooldown = 0;
-  
-  sscanf(line, "%31s (%d,%d) (%d,%d) %d %d", 
-                      type_str, &obs.pos1.x, &obs.pos1.y, 
-                      &obs.pos2.x, &obs.pos2.y, &obs.teleport_id, &obs.teleport_target_id);
-  
+
+  sscanf(line, "%31s (%d,%d) (%d,%d) %d %d", type_str, &obs.pos1.x, &obs.pos1.y,
+         &obs.pos2.x, &obs.pos2.y, &obs.teleport_id, &obs.teleport_target_id);
+
   if (strcmp(type_str, "TELEPORT") == 0) {
     obs.type = PASSIVE_TELEPORT_PAD;
   } else if (strcmp(type_str, "STICKY") == 0) {
@@ -184,7 +174,7 @@ PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
     obs.type = PASSIVE_TYPE_UNKNOWN;
     fprintf(stderr, "Warning: PassiveObstacles[%d] unknown type.\n", obs_id);
   }
-  
+
   return obs;
 }
 
@@ -316,7 +306,8 @@ LEVEL *LoadLevel(const char *filename) {
         return NULL;
       }
     } else if (strcmp(current_section, "[PASSIVE_OBSTACLES]") == 0) {
-      PASSIVE_OBSTACLE obs = LoadPassiveObstacle(line, level->num_passive_obstacles);
+      PASSIVE_OBSTACLE obs =
+          LoadPassiveObstacle(line, level->num_passive_obstacles);
       level->passive_obstacles = (PASSIVE_OBSTACLE *)AddLevelEntity(
           level->passive_obstacles, sizeof(PASSIVE_OBSTACLE),
           &level->num_passive_obstacles, &obs);

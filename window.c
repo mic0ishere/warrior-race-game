@@ -149,13 +149,50 @@ void CleanupWin(WIN *W) {
   }
 }
 
-void EndGame(WIN *W, char *msg, int color_pair) {
-  W->color = color_pair;
+void EndGame(WIN *W, char *msg, int is_success) {
+  W->color = is_success ? END_WIN_COLOR : END_LOSE_COLOR;
   CleanWin(W, BORDER);
 
   mvwprintw(W->window, W->rows / 2, (W->cols - strlen(msg)) / 2, "%s", msg);
 
   wrefresh(W->window);
+}
+
+void ShowPowerups(WIN *W, GAMESTATE *state, int row, int col) {
+  char powerup_status[COLS];
+  int status_pos = 0;
+
+  if (state->has_shield) {
+    status_pos +=
+        snprintf(powerup_status + status_pos, COLS - status_pos, "[Shield] ");
+  }
+
+  if (state->extra_life_timer > 0) {
+    status_pos +=
+        snprintf(powerup_status + status_pos, COLS - status_pos, "[+1 Life] ");
+  }
+
+  for (int i = 0; i < state->num_active_powerups; i++) {
+    if (!state->active_powerups[i].is_active) {
+      continue;
+    }
+
+    POWERUP_TYPE type = state->active_powerups[i].type;
+    int seconds_left =
+        state->active_powerups[i].frames_remaining / FRAMES_PER_SECOND;
+
+    if (type == POWERUP_DOUBLE_POINTS) {
+      status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
+                             "[2x Points:%ds] ", seconds_left);
+    } else if (type == POWERUP_TIME_FREEZE) {
+      status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
+                             "[Freeze:%ds] ", seconds_left);
+    }
+  }
+
+  if (status_pos > 0) {
+    mvwprintw(W->window, row, col, "%s", powerup_status);
+  }
 }
 
 void ShowStatus(WIN *W, GAMESTATE *state) {
@@ -173,40 +210,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
 
   mvwprintw(W->window, 2, 2, "%s", "[WASD]=Move [Q]=Quit [P]=Pause");
 
-  char powerup_status[COLS];
-  int status_pos = 0;
-
-  if (state->has_shield) {
-    status_pos +=
-        snprintf(powerup_status + status_pos, COLS - status_pos, "[Shield] ");
-  }
-
-  if (state->extra_life_timer > 0) {
-    status_pos +=
-        snprintf(powerup_status + status_pos, COLS - status_pos, "[+1 Life] ");
-  }
-
-  for (int i = 0; i < state->num_active_powerups; i++) {
-    if (state->active_powerups[i].is_active) {
-      int seconds = state->active_powerups[i].frames_remaining / FRAMES_PER_SECOND;
-      switch (state->active_powerups[i].type) {
-      case POWERUP_DOUBLE_POINTS:
-        status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
-                               "[2x Points:%ds] ", seconds);
-        break;
-      case POWERUP_TIME_FREEZE:
-        status_pos += snprintf(powerup_status + status_pos, COLS - status_pos,
-                               "[Freeze:%ds] ", seconds);
-        break;
-      default:
-        break;
-      }
-    }
-  }
-
-  if (status_pos > 0) {
-    mvwprintw(W->window, 3, 2, "%s", powerup_status);
-  }
+  ShowPowerups(W, state, 3, 2);
 
   wrefresh(W->window);
 }
@@ -284,19 +288,21 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
       level_y > state->level->height) {
     return;
   }
-  
+
   // Apply tall grass vision restriction with gradual transition
   if (state->grass_vision_transition > 0) {
     int dx = abs(level_x - state->player_pos.x);
     int dy = abs(level_y - state->player_pos.y);
-    
+
     // Calculate effective vision range based on transition progress
     // vision_range increases from 2 to full as transition goes from 10 to 0
-    float transition_factor = (float)state->grass_vision_transition / TALL_GRASS_TRANSITION_FRAMES;
+    float transition_factor =
+        (float)state->grass_vision_transition / TALL_GRASS_TRANSITION_FRAMES;
     int max_range = MAX(state->level->width, state->level->height);
-    int effective_range = TALL_GRASS_VISION_RANGE + 
-                         (int)((max_range - TALL_GRASS_VISION_RANGE) * (1.0f - transition_factor));
-    
+    int effective_range =
+        TALL_GRASS_VISION_RANGE + (int)((max_range - TALL_GRASS_VISION_RANGE) *
+                                        (1.0f - transition_factor));
+
     if (dx > effective_range || dy > effective_range) {
       return;
     }
@@ -318,10 +324,10 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
   // Render passive obstacles first (as floor tiles)
   for (int i = 0; i < state->level->num_passive_obstacles; i++) {
     PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
-    
+
     const char *symbol = "?";
     int color = DEFAULT_COLOR;
-    
+
     switch (obs->type) {
     case PASSIVE_TELEPORT_PAD:
       symbol = "P";
@@ -338,7 +344,7 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     default:
       continue;
     }
-    
+
     for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
       for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
         SafePrintEntity(W, x, y, symbol, state, color);

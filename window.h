@@ -25,6 +25,9 @@ void CleanupWin(WIN *W);
 // Display end game message
 void EndGame(WIN *W, char *msg, int color_pair);
 
+// Display power-ups status in status window
+void ShowPowerups(WIN *W, GAMESTATE *state, int row, int col);
+
 // Display status bar
 void ShowStatus(WIN *W, GAMESTATE *state);
 
