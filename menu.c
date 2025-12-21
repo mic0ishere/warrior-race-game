@@ -302,67 +302,67 @@ void ShowRanking(WIN *W) {
   }
 }
 
-// Helper function to get color for entity symbol
-static int GetEntityColor(const char *symbol) {
-  if (strcmp(symbol, "[@]") == 0)
+static int GetEntityColor(const char symbol) {
+  switch (symbol) {
+  case '@':
     return PLAYER_COLOR;
-  if (strcmp(symbol, "[T]") == 0)
+  case 'T':
     return TOTEM_COLOR;
-  if (strcmp(symbol, "[E]") == 0)
+  case 'E':
     return ENEMY_COLOR;
-  if (strcmp(symbol, "[^]") == 0)
+  case '^':
     return SPIKE_COLOR;
-  if (strcmp(symbol, "[F]") == 0)
+  case 'F':
     return FIREJET_COLOR;
-  if (strcmp(symbol, "[P]") == 0)
+  case 'P':
     return TELEPORT_PAD_COLOR;
-  if (strcmp(symbol, "[~]") == 0)
+  case '~':
     return STICKY_FLOOR_COLOR;
-  if (strcmp(symbol, "[,]") == 0)
+  case ',':
     return TALL_GRASS_COLOR;
-  if (strcmp(symbol, "[S]") == 0)
+  case 'S':
     return POWERUP_SHIELD_COLOR;
-  if (strcmp(symbol, "[D]") == 0)
+  case 'D':
     return POWERUP_DOUBLE_COLOR;
-  if (strcmp(symbol, "[+]") == 0)
+  case '+':
     return POWERUP_LIFE_COLOR;
+  default:
+    break;
+  }
+
   return -1; // No color
 }
 
-// Helper function to render a line with colored entity symbols
-// Entity symbols like [E], [T], [@] are colored, rest is rendered normally
 static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
                                  int max_width) {
   int current_x = x;
   const char *current = line;
-  
+
   while (*current && (current_x - x) < max_width) {
-    int found_entity = 0;
-    
-    // Use strstr to check if we might have an entity symbol at this position
+    int found_entity = FALSE;
+
     // Entity symbols are patterns like [@], [T], [E], etc.
-    if (strstr(current, "[") == current && current[1] != '\0' && current[2] == ']') {
-      // Build the potential entity symbol
-      char symbol[4];
-      symbol[0] = current[0];
-      symbol[1] = current[1];
-      symbol[2] = current[2];
-      symbol[3] = '\0';
-      
-      // Check if this is a known entity symbol
-      int color = GetEntityColor(symbol);
-      
-      if (color != -1) {
-        // This is a known entity - print it with color at specific coordinate
+    if (current[0] == '[' && current[1] != '\0' && current[2] == ']') {
+      int color = GetEntityColor(current[1]);
+
+      // Special case: differentiate between FIREJET and TIME FREEZE power-up
+      if (color == FIREJET_COLOR && strstr(line, "[F] TIME FREEZE") != NULL) {
+        color = POWERUP_FREEZE_COLOR;
+      }
+
+      if (color > 0) {
         wattron(win, COLOR_PAIR(color));
-        mvwaddstr(win, y, current_x, symbol);
+        mvwaddch(win, y, current_x, *"[");
+        mvwaddch(win, y, current_x + 1, current[1]);
+        mvwaddch(win, y, current_x + 2, *"]");
         wattroff(win, COLOR_PAIR(color));
+        
         current += 3;
         current_x += 3;
-        found_entity = 1;
+        found_entity = TRUE;
       }
     }
-    
+
     if (!found_entity) {
       // Regular character - print it at specific coordinate
       mvwaddch(win, y, current_x, *current);
