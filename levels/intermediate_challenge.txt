@@ -41,7 +41,7 @@ FIREJET (18,18) LEFT 2.5 5
 # LIFE - grants extra life
 # FREEZE - freezes enemies for 5 seconds
 SHIELD (2,2)
-DOUBLE (12,12)
+DOUBLE (12,16)
 LIFE (22,22)
 FREEZE (15,10)
 
