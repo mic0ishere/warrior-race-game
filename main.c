@@ -20,11 +20,11 @@ int main(void) {
     if (menu_choice == MENU_EXIT) {
       CleanupWin(mainwin);
       break;
-    } else if (menu_choice == MENU_RANKING) {
-      ShowRanking(mainwin);
-      continue;
     } else if (menu_choice == MENU_INSTRUCTIONS) {
       ShowInstructions(mainwin);
+      continue;
+    } else if (menu_choice == MENU_RANKING) {
+      ShowRanking(mainwin);
       continue;
     } else if (menu_choice == MENU_NEW_GAME) {
       // Load level from level selector

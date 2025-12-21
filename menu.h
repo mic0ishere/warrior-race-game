@@ -5,8 +5,8 @@
 
 // Menu options
 #define MENU_NEW_GAME 0
-#define MENU_RANKING 1
-#define MENU_INSTRUCTIONS 2
+#define MENU_INSTRUCTIONS 1
+#define MENU_RANKING 2
 #define MENU_EXIT 3
 #define MENU_ITEMS 4
 

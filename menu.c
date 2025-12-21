@@ -10,8 +10,8 @@
 #include <unistd.h>
 
 // Main menu items
-static const char *menu_items[MENU_ITEMS] = {"New Game", "View Ranking",
-                                             "Instructions", "Exit"};
+static const char *menu_items[MENU_ITEMS] = {"New Game", "Instructions",
+                                             "View Ranking", "Exit"};
 
 // Instructions string
 static const char *instructions =
@@ -328,63 +328,52 @@ void ShowInstructions(WIN *W) {
     "=== ENEMIES ===",
     "",
     "  [E] PATROL - Moves back and forth along a set path",
-    "      Color: Red background with white text",
     "      Behavior: Predictable movement between two points",
     "",
     "  [E] RANDOM - Wanders randomly within bounds",
-    "      Color: Red background with white text",
     "      Behavior: Unpredictable movement pattern",
     "",
     "  [E] CHASER - Pursues player when in range",
-    "      Color: Blue (sleeping) or Bright Red (chasing)",
     "      Behavior: Actively hunts player within chase radius",
+    "      Note: Blue when sleeping, bright red when chasing",
     "",
     "  [E] TELEPORTER - Randomly teleports around level",
-    "      Color: Red background, flashes magenta before teleport",
     "      Behavior: Dangerous and unpredictable positioning",
+    "      Note: Flashes magenta before teleporting",
     "",
     "=== AGGRESSIVE OBSTACLES ===",
     "",
     "  [^] SPIKE - Harms player from specific direction",
-    "      Color: Magenta background",
     "      Behavior: Activates at regular intervals",
     "      Danger: Only harmful when moving INTO spike direction",
     "",
     "  [#] FIREJET - Shoots fire in straight line",
-    "      Color: Bright red background",
     "      Behavior: Emits fire at set intervals",
     "      Danger: Fire travels multiple tiles in one direction",
     "",
     "=== PASSIVE OBSTACLES ===",
     "",
     "  [T] TELEPORT PAD - Instant transport to linked pad",
-    "      Color: Magenta background",
     "      Effect: Jump to destination pad (2 second cooldown)",
     "",
     "  [~] STICKY FLOOR - Slows player movement",
-    "      Color: Yellow background",
-    "      Effect: Move only every 4 frames (4x slower)",
+    "      Effect: Movement 4x slower",
     "",
     "  [,] TALL GRASS - Reduces vision range",
-    "      Color: Green background",
     "      Effect: Only see 2 tiles around player while inside",
     "",
     "=== POWER-UPS ===",
     "",
     "  [S] SHIELD - Negates next enemy collision",
-    "      Color: Cyan background",
     "      Effect: One-time protection from enemy damage",
     "",
     "  [D] DOUBLE POINTS - Double totem values",
-    "      Color: Yellow background",
     "      Effect: Lasts 10 seconds",
     "",
     "  [+] EXTRA LIFE - Gain one additional life",
-    "      Color: Bright green background",
     "      Effect: Instant life bonus",
     "",
     "  [F] TIME FREEZE - Stops all enemy movement",
-    "      Color: Bright blue background",
     "      Effect: Lasts 5 seconds",
     "",
     "TIPS:",
@@ -392,14 +381,12 @@ void ShowInstructions(WIN *W) {
     "  * Watch enemy patterns before engaging",
     "  * Use power-ups at critical moments",
     "  * Teleport pads can be shortcuts or escapes",
-    "  * Avoid sticky floors when being chased",
-    "",
-    "Press [Q] to return to menu, [W/S] to scroll"
+    "  * Avoid sticky floors when being chased"
   };
 
   const int total_lines = sizeof(instruction_lines) / sizeof(instruction_lines[0]);
   int scroll_offset = 0;
-  int visible_lines = W->rows - 4; // Leave room for borders and controls
+  int visible_lines = W->rows - 5; // Leave room for borders and fixed navigation
   int max_scroll = MAX(0, total_lines - visible_lines);
 
   int c;
@@ -407,10 +394,93 @@ void ShowInstructions(WIN *W) {
     wclear(win);
     box(win, 0, 0);
 
-    // Display visible portion of instructions
+    // Display visible portion of instructions with colors
     for (int i = 0; i < visible_lines && (scroll_offset + i) < total_lines; i++) {
       const char *line = instruction_lines[scroll_offset + i];
-      mvwprintw(win, 2 + i, 2, "%.*s", W->cols - 4, line);
+      int line_y = 2 + i;
+      
+      // Check if line contains colored entities and render them with colors
+      if (strstr(line, "[E]") && strstr(line, "PATROL")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, "[E]");
+        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, " PATROL - Moves back and forth along a set path");
+      } else if (strstr(line, "[E]") && strstr(line, "RANDOM")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, "[E]");
+        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, " RANDOM - Wanders randomly within bounds");
+      } else if (strstr(line, "[E]") && strstr(line, "CHASER")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(CHASER_SLEEPING_COLOR));
+        wprintw(win, "[E]");
+        wattroff(win, COLOR_PAIR(CHASER_SLEEPING_COLOR));
+        wprintw(win, " CHASER - Pursues player when in range");
+      } else if (strstr(line, "[E]") && strstr(line, "TELEPORTER")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, "[E]");
+        wattroff(win, COLOR_PAIR(ENEMY_COLOR));
+        wprintw(win, " TELEPORTER - Randomly teleports around level");
+      } else if (strstr(line, "[^]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(SPIKE_COLOR));
+        wprintw(win, "[^]");
+        wattroff(win, COLOR_PAIR(SPIKE_COLOR));
+        wprintw(win, " SPIKE - Harms player from specific direction");
+      } else if (strstr(line, "[#]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(FIREJET_COLOR));
+        wprintw(win, "[#]");
+        wattroff(win, COLOR_PAIR(FIREJET_COLOR));
+        wprintw(win, " FIREJET - Shoots fire in straight line");
+      } else if (strstr(line, "[T]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(TELEPORT_PAD_COLOR));
+        wprintw(win, "[T]");
+        wattroff(win, COLOR_PAIR(TELEPORT_PAD_COLOR));
+        wprintw(win, " TELEPORT PAD - Instant transport to linked pad");
+      } else if (strstr(line, "[~]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(STICKY_FLOOR_COLOR));
+        wprintw(win, "[~]");
+        wattroff(win, COLOR_PAIR(STICKY_FLOOR_COLOR));
+        wprintw(win, " STICKY FLOOR - Slows player movement");
+      } else if (strstr(line, "[,]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(TALL_GRASS_COLOR));
+        wprintw(win, "[,]");
+        wattroff(win, COLOR_PAIR(TALL_GRASS_COLOR));
+        wprintw(win, " TALL GRASS - Reduces vision range");
+      } else if (strstr(line, "[S]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(POWERUP_SHIELD_COLOR));
+        wprintw(win, "[S]");
+        wattroff(win, COLOR_PAIR(POWERUP_SHIELD_COLOR));
+        wprintw(win, " SHIELD - Negates next enemy collision");
+      } else if (strstr(line, "[D]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(POWERUP_DOUBLE_COLOR));
+        wprintw(win, "[D]");
+        wattroff(win, COLOR_PAIR(POWERUP_DOUBLE_COLOR));
+        wprintw(win, " DOUBLE POINTS - Double totem values");
+      } else if (strstr(line, "[+]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(POWERUP_LIFE_COLOR));
+        wprintw(win, "[+]");
+        wattroff(win, COLOR_PAIR(POWERUP_LIFE_COLOR));
+        wprintw(win, " EXTRA LIFE - Gain one additional life");
+      } else if (strstr(line, "[F]")) {
+        mvwprintw(win, line_y, 2, "  ");
+        wattron(win, COLOR_PAIR(POWERUP_FREEZE_COLOR));
+        wprintw(win, "[F]");
+        wattroff(win, COLOR_PAIR(POWERUP_FREEZE_COLOR));
+        wprintw(win, " TIME FREEZE - Stops all enemy movement");
+      } else {
+        mvwprintw(win, line_y, 2, "%.*s", W->cols - 4, line);
+      }
     }
 
     // Show scroll indicator if there's more content
@@ -418,8 +488,12 @@ void ShowInstructions(WIN *W) {
       mvwprintw(win, 1, W->cols - 15, "^ More above");
     }
     if (scroll_offset < max_scroll) {
-      mvwprintw(win, W->rows - 2, W->cols - 15, "v More below");
+      mvwprintw(win, W->rows - 3, W->cols - 15, "v More below");
     }
+
+    // Fixed navigation info at bottom
+    const char *nav_info = "Use [W/S] to scroll, [Q] to return to menu";
+    mvwprintw(win, W->rows - 2, (W->cols - strlen(nav_info)) / 2, "%s", nav_info);
 
     wrefresh(win);
 
