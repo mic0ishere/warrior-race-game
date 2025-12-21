@@ -1,0 +1,57 @@
+[CONFIG]
+TIME=45
+LIFES=5
+WIDTH=25
+HEIGHT=25
+START_X=0
+START_Y=0
+WIN_SCORE=25
+
+[TOTEMS]
+# (x,y) points
+(5,5) 5
+(12,12) 10
+(20,20) 15
+
+[OBSTACLES]
+# (x1,y1) (x2,y2)
+(8,8) (10,10)
+(15,5) (17,7)
+
+[ENEMIES]
+# type          bounds          start speed [extra_params]
+PATROL (0,8) (10,8) (0,8) 1
+PATROL (15,15) (15,20) (15,15) 2
+RANDOM (18,0) (24,10) (20,5) 1
+
+[AGGRESSIVE_OBSTACLES]
+# SPIKE (x,y) direction interval 
+SPIKE (10,5) UP 2
+SPIKE (20,10) DOWN 2
+
+# FIREJET (x,y) direction interval length
+FIREJET (5,12) RIGHT 2 6
+FIREJET (18,18) LEFT 2.5 5
+
+[POWERUPS]
+# type (x,y)
+# SHIELD - negates next enemy collision
+# DOUBLE - doubles points for 10 seconds
+# LIFE - grants extra life
+# FREEZE - freezes enemies for 5 seconds
+SHIELD (2,2)
+DOUBLE (12,12)
+LIFE (22,22)
+FREEZE (15,10)
+
+[PASSIVE_OBSTACLES]
+# Teleport pads - shortcuts across the level
+# Format: TELEPORT (x,y) (x,y) my_id target_id
+TELEPORT (3,20) (3,20) 0 1
+TELEPORT (20,3) (20,3) 1 0
+
+# Sticky floor - challenge areas
+STICKY (10,15) (13,18)
+
+# Tall grass - exploration area
+GRASS (0,22) (5,24)
