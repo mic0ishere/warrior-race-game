@@ -222,6 +222,75 @@ void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason) {
   state->life_loss = reason;
 }
 
+static void MovePatrolEnemy(GAMESTATE *state, ENEMY *enemy) {
+  POSITION wanted_pos = NextEnemyPosition(enemy);
+
+  if (!CheckCollision(state, wanted_pos) ||
+      !CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
+    enemy->direction *= -1;
+    enemy->current_pos = NextEnemyPosition(enemy);
+    return;
+  }
+
+  enemy->current_pos = wanted_pos;
+}
+
+static void MoveRandomEnemy(GAMESTATE *state, ENEMY *enemy) {
+  POSITION wanted_pos = NextEnemyPosition(enemy);
+
+  if (CheckCollision(state, wanted_pos) &&
+      CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
+    enemy->current_pos = wanted_pos;
+  }
+}
+
+static void MoveChaserEnemy(GAMESTATE *state, ENEMY *enemy) {
+  int dx = state->player_pos.x - enemy->current_pos.x;
+  int dy = state->player_pos.y - enemy->current_pos.y;
+  int distance = (int)sqrt(dx * dx + dy * dy);
+
+  if (distance <= enemy->chase_radius) {
+    enemy->is_chasing = TRUE;
+    POSITION wanted_pos = enemy->current_pos;
+
+    if (abs(dx) > abs(dy)) {
+      wanted_pos.x += (dx > 0) ? 1 : -1;
+    } else {
+      wanted_pos.y += (dy > 0) ? 1 : -1;
+    }
+
+    if (CheckCollision(state, wanted_pos) &&
+        CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
+      enemy->current_pos = wanted_pos;
+    }
+  } else {
+    enemy->is_chasing = FALSE;
+  }
+}
+
+static void MoveTeleporterEnemy(GAMESTATE *state, ENEMY *enemy) {
+  if (state->frames_elapsed - enemy->last_teleport_frame <
+      (TELEPORTER_INTERVAL_FRAMES / enemy->speed)) {
+    return;
+  }
+
+  int range_x = enemy->pos2.x - enemy->pos1.x + 1;
+  int range_y = enemy->pos2.y - enemy->pos1.y + 1;
+
+  POSITION wanted_pos;
+  wanted_pos.x = enemy->pos1.x + (rand() % range_x);
+  wanted_pos.y = enemy->pos1.y + (rand() % range_y);
+
+  int is_colliding = !CheckCollision(state, wanted_pos);
+  int is_at_start = (wanted_pos.x == state->level->start_pos.x &&
+                     wanted_pos.y == state->level->start_pos.y);
+
+  if (!is_at_start && !is_colliding) {
+    enemy->current_pos = wanted_pos;
+    enemy->last_teleport_frame = state->frames_elapsed;
+  }
+}
+
 void MoveEnemies(GAMESTATE *state) {
   if (IsPowerupActive(state, POWERUP_TIME_FREEZE)) {
     return;
@@ -237,74 +306,15 @@ void MoveEnemies(GAMESTATE *state) {
       continue;
     }
 
-    POSITION wanted_pos = enemy->current_pos;
-
-    // Handle different enemy types
     if (enemy->type == ENEMY_PATROL_HORIZONTAL ||
         enemy->type == ENEMY_PATROL_VERTICAL) {
-      wanted_pos = NextEnemyPosition(enemy);
-
-      if (!CheckCollision(state, wanted_pos) ||
-          !CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
-        enemy->direction *= -1;
-        enemy->current_pos = NextEnemyPosition(enemy);
-        continue;
-      }
-
-      enemy->current_pos = wanted_pos;
-
+      MovePatrolEnemy(state, enemy);
     } else if (enemy->type == ENEMY_PATROL_RANDOM) {
-      wanted_pos = NextEnemyPosition(enemy);
-
-      if (CheckCollision(state, wanted_pos) &&
-          CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
-        enemy->current_pos = wanted_pos;
-      }
+      MoveRandomEnemy(state, enemy);
     } else if (enemy->type == ENEMY_CHASER) {
-      // Calculate distance to player
-      int dx = state->player_pos.x - enemy->current_pos.x;
-      int dy = state->player_pos.y - enemy->current_pos.y;
-      int distance = (int)sqrt(dx * dx + dy * dy);
-
-      // Only chase if player is within chase radius ("can be seen")
-      if (distance <= enemy->chase_radius) {
-        enemy->is_chasing = TRUE;
-        // Move towards player (simple AI: one step at a time)
-        if (abs(dx) > abs(dy)) {
-          wanted_pos.x += (dx > 0) ? 1 : -1;
-        } else {
-          wanted_pos.y += (dy > 0) ? 1 : -1;
-        }
-
-        // Only move if within bounds and no collision
-        if (CheckCollision(state, wanted_pos) &&
-            CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
-          enemy->current_pos = wanted_pos;
-        }
-      } else {
-        enemy->is_chasing = FALSE;
-      }
-
+      MoveChaserEnemy(state, enemy);
     } else if (enemy->type == ENEMY_TELEPORTER) {
-      // Teleport every 3 seconds
-      if (state->frames_elapsed - enemy->last_teleport_frame >=
-          (TELEPORTER_INTERVAL_FRAMES / enemy->speed)) {
-        int range_x = enemy->pos2.x - enemy->pos1.x + 1;
-        int range_y = enemy->pos2.y - enemy->pos1.y + 1;
-
-        // Random position within bounding box
-        wanted_pos.x = enemy->pos1.x + (rand() % range_x);
-        wanted_pos.y = enemy->pos1.y + (rand() % range_y);
-
-        int is_colliding = !CheckCollision(state, wanted_pos);
-        int is_at_start_pos = (wanted_pos.x == state->level->start_pos.x &&
-                               wanted_pos.y == state->level->start_pos.y);
-
-        if (!is_at_start_pos && !is_colliding) {
-          enemy->current_pos = wanted_pos;
-          enemy->last_teleport_frame = state->frames_elapsed;
-        }
-      }
+      MoveTeleporterEnemy(state, enemy);
     }
   }
 }
@@ -385,6 +395,44 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
   }
 }
 
+static int AttemptPlayerTeleport(GAMESTATE *state, PASSIVE_OBSTACLE *obs) {
+  int cooldown = state->frames_elapsed - state->last_teleport_frame;
+  if (cooldown < TELEPORT_PAD_COOLDOWN_FRAMES) {
+    return FALSE;
+  }
+
+  for (int j = 0; j < state->level->num_passive_obstacles; j++) {
+    PASSIVE_OBSTACLE *target = &state->level->passive_obstacles[j];
+
+    if (target->type == PASSIVE_TELEPORT_PAD &&
+        target->teleport_id == obs->teleport_target_id) {
+      if (CheckCollision(state, target->pos1)) {
+        state->player_pos = target->pos1;
+        state->last_teleport_frame = state->frames_elapsed;
+        snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
+        return TRUE;
+      }
+      break;
+    }
+  }
+  return FALSE;
+}
+
+static void UpdateGrassVisionTransition(GAMESTATE *state, int was_in_grass) {
+  if (state->is_in_tall_grass && !was_in_grass) {
+    state->grass_vision_transition = 0;
+  } else if (!state->is_in_tall_grass && was_in_grass) {
+    state->grass_vision_transition = TALL_GRASS_TRANSITION_FRAMES;
+  }
+
+  if (state->is_in_tall_grass &&
+      state->grass_vision_transition < TALL_GRASS_TRANSITION_FRAMES) {
+    state->grass_vision_transition++;
+  } else if (!state->is_in_tall_grass && state->grass_vision_transition > 0) {
+    state->grass_vision_transition--;
+  }
+}
+
 void CheckPassiveObstacles(GAMESTATE *state) {
   int was_in_grass = state->is_in_tall_grass;
   state->is_in_tall_grass = FALSE;
@@ -398,24 +446,8 @@ void CheckPassiveObstacles(GAMESTATE *state) {
     }
 
     if (obs->type == PASSIVE_TELEPORT_PAD) {
-      int cooldown_elapsed = state->frames_elapsed - state->last_teleport_frame;
-      if (cooldown_elapsed >= TELEPORT_PAD_COOLDOWN_FRAMES) {
-        // Find target pad by matching teleport_id with target's teleport_id
-        for (int j = 0; j < state->level->num_passive_obstacles; j++) {
-          PASSIVE_OBSTACLE *target = &state->level->passive_obstacles[j];
-
-          if (target->type == PASSIVE_TELEPORT_PAD &&
-              target->teleport_id == obs->teleport_target_id) {
-            // Check if destination is valid (no obstacles)
-            if (CheckCollision(state, target->pos1)) {
-              state->player_pos = target->pos1;
-              state->last_teleport_frame = state->frames_elapsed;
-              snprintf(state->debug_msg, MAX_DEBUG_LEN, "Teleported!");
-              return;
-            }
-            break;
-          }
-        }
+      if (AttemptPlayerTeleport(state, obs)) {
+        return;
       }
     } else if (obs->type == PASSIVE_STICKY_FLOOR) {
       is_on_sticky = TRUE;
@@ -424,22 +456,7 @@ void CheckPassiveObstacles(GAMESTATE *state) {
     }
   }
 
-  // Handle gradual vision transition for tall grass
-  if (state->is_in_tall_grass && !was_in_grass) {
-    // Entering grass - start transition
-    state->grass_vision_transition = 0;
-  } else if (!state->is_in_tall_grass && was_in_grass) {
-    // Exiting grass - start transition out
-    state->grass_vision_transition = TALL_GRASS_TRANSITION_FRAMES;
-  }
-
-  // Update vision transition
-  if (state->is_in_tall_grass &&
-      state->grass_vision_transition < TALL_GRASS_TRANSITION_FRAMES) {
-    state->grass_vision_transition++;
-  } else if (!state->is_in_tall_grass && state->grass_vision_transition > 0) {
-    state->grass_vision_transition--;
-  }
+  UpdateGrassVisionTransition(state, was_in_grass);
 
   if (!is_on_sticky) {
     state->sticky_floor_counter = 0;
@@ -492,10 +509,124 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
   wrefresh(playwin->window);
 }
 
+static void UpdateGameState(GAMESTATE *state) {
+  if (state->extra_life_timer > 0) {
+    state->extra_life_timer--;
+  }
+
+  if (state->shield_protection_timer > 0) {
+    state->shield_protection_timer--;
+  }
+
+  MoveEnemies(state);
+  CheckPlayerEnemyCollision(state);
+  UpdateAggressiveObstacles(state);
+  CheckPassiveObstacles(state);
+
+  state->frames_elapsed++;
+  state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
+}
+
+static int CheckForGameEnd(GAMESTATE *state) {
+  if (state->time_elapsed >= state->level->time_limit) {
+    state->status = GAME_TIMEOUT;
+    return TRUE;
+  }
+
+  if (state->lifes_left <= 0) {
+    state->status = OUT_OF_LIFES;
+    return TRUE;
+  }
+
+  int all_totems_collected = TRUE;
+  for (int i = 0; i < state->level->num_totems; i++) {
+    if (!state->level->totems[i].is_collected) {
+      all_totems_collected = FALSE;
+      break;
+    }
+  }
+  
+  if (all_totems_collected) {
+    state->status = WIN_POINTS;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static void ProcessPlayerMovement(GAMESTATE *state, int ch) {
+  POSITION wanted_pos = state->player_pos;
+  int movement_attempted = FALSE;
+
+  if (ch == UP) {
+    wanted_pos.y++;
+    movement_attempted = TRUE;
+  } else if (ch == DOWN) {
+    wanted_pos.y--;
+    movement_attempted = TRUE;
+  } else if (ch == LEFT) {
+    wanted_pos.x--;
+    movement_attempted = TRUE;
+  } else if (ch == RIGHT) {
+    wanted_pos.x++;
+    movement_attempted = TRUE;
+  }
+
+  int is_on_sticky = FALSE;
+  for (int i = 0; i < state->level->num_passive_obstacles; i++) {
+    PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
+    if (obs->type == PASSIVE_STICKY_FLOOR &&
+        CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
+      is_on_sticky = TRUE;
+      break;
+    }
+  }
+
+  if (movement_attempted && is_on_sticky) {
+    state->sticky_floor_counter++;
+    if (state->sticky_floor_counter < STICKY_FLOOR_SLOWDOWN) {
+      movement_attempted = FALSE;
+    } else {
+      state->sticky_floor_counter = 0;
+    }
+  }
+
+  if (movement_attempted && CheckCollision(state, wanted_pos)) {
+    state->player_pos = wanted_pos;
+    if (state->shield_protection_timer > 0) {
+      state->shield_protection_timer = 0;
+    }
+  }
+}
+
+static void UpdateAndRenderFrame(WIN *playwin, WIN *statwin, WIN *debugwin,
+                                 GAMESTATE *state) {
+  snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
+           state->player_pos.x, state->player_pos.y);
+
+  CollectTotems(state);
+  CollectPowerups(state);
+  UpdateActivePowerups(state);
+  UpdateGameState(state);
+  RenderPlayArea(playwin, state);
+
+  ShowDebug(debugwin, state->debug_msg);
+  ShowStatus(statwin, state);
+  wrefresh(playwin->window);
+}
+
+static void HandleLifeLoss(WIN *playwin, GAMESTATE *state) {
+  if (state->life_loss != LIFE_STATUS_NONE) {
+    ShowLifeLoss(playwin, state->life_loss);
+    state->life_loss = LIFE_STATUS_NONE;
+    state->player_pos = state->level->start_pos;
+    usleep(2 * 1000 * 1000);
+  }
+}
+
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   int is_paused = FALSE;
-  POSITION wanted_pos;
 
   while (1) {
     ch = wgetch(statwin->window);
@@ -512,115 +643,20 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
 
     if (is_paused) {
       ShowAlert(playwin, "Game is paused. Press 'P' to resume.");
-
       usleep(FRAME_TIME_MS * 1000);
       continue;
     }
 
-    wanted_pos.x = state->player_pos.x;
-    wanted_pos.y = state->player_pos.y;
+    ProcessPlayerMovement(state, ch);
+    UpdateAndRenderFrame(playwin, statwin, debugwin, state);
 
-    int movement_attempted = FALSE;
-
-    if (ch == UP) {
-      wanted_pos.y++;
-      movement_attempted = TRUE;
-    } else if (ch == DOWN) {
-      wanted_pos.y--;
-      movement_attempted = TRUE;
-    } else if (ch == LEFT) {
-      wanted_pos.x--;
-      movement_attempted = TRUE;
-    } else if (ch == RIGHT) {
-      wanted_pos.x++;
-      movement_attempted = TRUE;
-    }
-
-    // Check if player is on sticky floor
-    int is_on_sticky = FALSE;
-    for (int i = 0; i < state->level->num_passive_obstacles; i++) {
-      PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
-      if (obs->type == PASSIVE_STICKY_FLOOR &&
-          CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
-        is_on_sticky = TRUE;
-        break;
-      }
-    }
-
-    // Apply sticky floor slowdown
-    if (is_on_sticky && movement_attempted) {
-      state->sticky_floor_counter++;
-      if (state->sticky_floor_counter < STICKY_FLOOR_SLOWDOWN) {
-        movement_attempted = FALSE; // Skip movement this frame
-      } else {
-        state->sticky_floor_counter = 0;
-      }
-    }
-
-    // Move player if no collision
-    if (movement_attempted && CheckCollision(state, wanted_pos)) {
-      state->player_pos = wanted_pos;
-
-      // Reset shield protection timer if player moved
-      if (state->shield_protection_timer > 0) {
-        state->shield_protection_timer = 0;
-      }
-    }
-
-    snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
-             state->player_pos.x, state->player_pos.y);
-
-    CollectTotems(state);
-    CollectPowerups(state);
-    UpdateActivePowerups(state);
-
-    // Decrement extra life timer
-    if (state->extra_life_timer > 0) {
-      state->extra_life_timer--;
-    }
-
-    // Decrement shield protection timer
-    if (state->shield_protection_timer > 0) {
-      state->shield_protection_timer--;
-    }
-
-    MoveEnemies(state);
-    CheckPlayerEnemyCollision(state);
-    UpdateAggressiveObstacles(state);
-    CheckPassiveObstacles(state);
-    RenderPlayArea(playwin, state);
-
-    state->frames_elapsed++;
-    state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
-
-    ShowDebug(debugwin, state->debug_msg);
-    ShowStatus(statwin, state);
-    wrefresh(playwin->window);
-
-    if (state->time_elapsed >= state->level->time_limit) {
-      state->status = GAME_TIMEOUT;
+    if (CheckForGameEnd(state)) {
       break;
     }
 
-    if (state->lifes_left <= 0) {
-      state->status = OUT_OF_LIFES;
-      break;
-    }
-
-    if (state->score >= state->level->win_score) {
-      state->status = WIN_POINTS;
-      break;
-    }
-
-    if (state->life_loss != LIFE_STATUS_NONE) {
-      ShowLifeLoss(playwin, state->life_loss);
-      state->life_loss = LIFE_STATUS_NONE;
-      state->player_pos = state->level->start_pos;
-      usleep(2 * 1000 * 1000); // Pause for 2 seconds to show life loss message
-    }
+    HandleLifeLoss(playwin, state);
 
     flushinp();
-
     usleep(FRAME_TIME_MS * 1000);
   }
 }

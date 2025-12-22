@@ -97,19 +97,15 @@ int ScanLevels(char levels[][256]) {
   }
 
   while ((entry = readdir(dir)) != NULL && count < MAX_LEVELS) {
-    // Check if file ends with .txt
     size_t len = strlen(entry->d_name);
-    if (len > 4 && strcmp(entry->d_name + len - 4, ".txt") == 0) {
+    if (len > 4 && len < 248 && strcmp(entry->d_name + len - 4, ".txt") == 0) {
       snprintf(levels[count], 256, "levels/%s", entry->d_name);
       count++;
     }
   }
 
   closedir(dir);
-
-  // Sort levels alphabetically using qsort
   qsort(levels, count, 256, compare_strings);
-
   return count;
 }
 
@@ -136,6 +132,35 @@ char *GetLevelName(const char *filename) {
   return level_name;
 }
 
+static void RenderLevelList(WIN *W, char levels[][256], int num_levels,
+                            int highlight, int scroll_offset) {
+  int start_y = 5;
+  int visible_items = W->rows - 10;
+  const int column_start = (W->cols) / 2 - 16;
+
+  for (int i = scroll_offset;
+       i < num_levels && i <= scroll_offset + visible_items; i++) {
+    if (i == highlight) {
+      wattron(W->window, A_REVERSE);
+    }
+
+    char *level_name = GetLevelName(levels[i]);
+    mvwprintw(W->window, start_y + (i - scroll_offset), column_start, "%d. %s",
+              i + 1, level_name);
+
+    if (i == highlight) {
+      wattroff(W->window, A_REVERSE);
+    }
+  }
+
+  if (scroll_offset + visible_items < num_levels - 1) {
+    mvwhline(W->window, start_y + visible_items, 1, ' ', W->cols - 2);
+    mvwprintw(W->window, start_y + visible_items, column_start,
+              "... %d more levels\t\t\t",
+              num_levels - (scroll_offset + visible_items));
+  }
+}
+
 LEVEL *ShowLevelSelector(WIN *W) {
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
@@ -145,11 +170,7 @@ LEVEL *ShowLevelSelector(WIN *W) {
   }
 
   int highlight = 0;
-  int c;
-
   WINDOW *win = W->window;
-
-  // Wait for user input
   nodelay(win, FALSE);
 
   while (1) {
@@ -159,47 +180,17 @@ LEVEL *ShowLevelSelector(WIN *W) {
     const char *title = "=== SELECT LEVEL ===";
     mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
 
-    // Level list
-    int start_y = 5;
     int visible_items = W->rows - 10;
-    int scroll_offset = 0;
-    const int column_start = (W->cols) / 2 - 16;
+    int scroll_offset =
+        (highlight >= visible_items) ? (highlight - visible_items + 1) : 0;
 
-    if (highlight >= visible_items) {
-      scroll_offset = highlight - visible_items + 1;
-    }
+    RenderLevelList(W, levels, num_levels, highlight, scroll_offset);
 
-    for (int i = scroll_offset;
-         i < num_levels && i <= scroll_offset + visible_items; i++) {
-      if (i == highlight) {
-        wattron(win, A_REVERSE);
-      }
-
-      char *level_name = GetLevelName(levels[i]);
-
-      mvwprintw(win, start_y + (i - scroll_offset), column_start, "%d. %s",
-                i + 1, level_name);
-
-      if (i == highlight) {
-        wattroff(win, A_REVERSE);
-      }
-    }
-
-    if (scroll_offset + visible_items < num_levels - 1) {
-      // Draw an empty line to clear previous content and show '... more levels'
-      mvwhline(win, start_y + visible_items, 1, ' ', W->cols - 2);
-      mvwprintw(win, start_y + visible_items, column_start,
-                "... %d more levels\t\t\t",
-                num_levels - (scroll_offset + visible_items));
-    }
-
-    // Display instructions
     mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
               instructions);
-
     wrefresh(win);
 
-    c = wgetch(win);
+    int c = wgetch(win);
 
     switch (c) {
     case UP:
@@ -214,9 +205,9 @@ LEVEL *ShowLevelSelector(WIN *W) {
       return NULL;
     default:
       if (c >= '1' && c <= '0' + num_levels) {
-        return LoadLevel(levels[c - '1']);
+        highlight = c - '1';
+        return LoadLevel(levels[highlight]);
       }
-
       break;
     }
   }
@@ -224,10 +215,38 @@ LEVEL *ShowLevelSelector(WIN *W) {
   return NULL;
 }
 
+static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[],
+                            int num_rankings) {
+  if (num_rankings == 0) {
+    const char *no_rankings = "No rankings yet for this level";
+    mvwprintw(W->window, 8, (W->cols - strlen(no_rankings)) / 2, "%s",
+              no_rankings);
+    return;
+  }
+
+  mvwprintw(W->window, 6, 5, "Rank  Final Score  Totems  Lives  Time Left");
+  mvwprintw(W->window, 7, 5, "----  -----------  ------  -----  ---------");
+
+  for (int i = 0; i < num_rankings && i < 10; i++) {
+    mvwprintw(W->window, 8 + i, 5, "#%-3d  %11d  %6d  %5d  %9d", i + 1,
+              rankings[i].final_score, rankings[i].totems_score,
+              rankings[i].lives_left, rankings[i].time_left);
+  }
+}
+
+static void RenderRankingHeader(WIN *W, int current_level, char levels[][256]) {
+  const char *title = "=== GAME RANKING ===";
+  mvwprintw(W->window, 2, (W->cols - strlen(title)) / 2, "%s", title);
+
+  char *level_name = GetLevelName(levels[current_level]);
+  char level_title[COLS];
+  snprintf(level_title, sizeof(level_title), "Level: %s", level_name);
+  mvwprintw(W->window, 4, (W->cols - strlen(level_title)) / 2, "%s",
+            level_title);
+}
+
 void ShowRanking(WIN *W) {
   WINDOW *win = W->window;
-
-  // Scan available levels
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
 
@@ -235,58 +254,32 @@ void ShowRanking(WIN *W) {
 
   if (num_levels == 0) {
     CleanWin(W, 1);
-
     const char *msg = "No levels found";
     mvwprintw(win, W->rows / 2, (W->cols - strlen(msg)) / 2, "%s", msg);
     wrefresh(win);
-
     wgetch(win);
     return;
   }
 
   int current_level = 0;
-  int c;
 
   while (1) {
     CleanWin(W, 1);
+    RenderRankingHeader(W, current_level, levels);
 
-    const char *title = "=== GAME RANKING ===";
-    mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
-
-    // Display current level name
     char *level_name = GetLevelName(levels[current_level]);
-    char level_title[100];
-    snprintf(level_title, sizeof(level_title), "Level: %s", level_name);
-    mvwprintw(win, 4, (W->cols - strlen(level_title)) / 2, "%s", level_title);
-
-    // Load rankings for current level
     RANKING_ENTRY rankings[MAX_RANKINGS_PER_LEVEL];
     int num_rankings =
         GetLevelRankings(level_name, rankings, MAX_RANKINGS_PER_LEVEL);
 
-    if (num_rankings == 0) {
-      const char *no_rankings = "No rankings yet for this level";
-      mvwprintw(win, 8, (W->cols - strlen(no_rankings)) / 2, "%s", no_rankings);
-    } else {
-      // Display header
-      mvwprintw(win, 6, 5, "Rank  Final Score  Totems  Lives  Time Left");
-      mvwprintw(win, 7, 5, "----  -----------  ------  -----  ---------");
-
-      // Display rankings
-      for (int i = 0; i < num_rankings && i < 10; i++) {
-        mvwprintw(win, 8 + i, 5, "#%-3d  %11d  %6d  %5d  %9d", i + 1,
-                  rankings[i].final_score, rankings[i].totems_score,
-                  rankings[i].lives_left, rankings[i].time_left);
-      }
-    }
+    DisplayRankings(W, rankings, num_rankings);
 
     const char *nav = "Use [A/D] to change levels, [Q] to exit";
     mvwprintw(win, W->rows - 2, (W->cols - strlen(nav)) / 2, "%s", nav);
 
     wrefresh(win);
 
-    c = wgetch(win);
-
+    char c = wgetch(win);
     switch (c) {
     case LEFT:
       current_level = (current_level - 1 + num_levels) % num_levels;
@@ -356,7 +349,7 @@ static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
         mvwaddch(win, y, current_x + 1, current[1]);
         mvwaddch(win, y, current_x + 2, *"]");
         wattroff(win, COLOR_PAIR(color));
-        
+
         current += 3;
         current_x += 3;
         found_entity = TRUE;

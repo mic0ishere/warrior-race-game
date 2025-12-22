@@ -199,7 +199,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
   mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lifes: %d/%d",
-            state->score, state->level->win_score,
+            state->score, state->level->total_totems_score,
             state->level->time_limit - state->time_elapsed, state->lifes_left,
             state->level->lifes);
 
@@ -318,13 +318,9 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
   }
 }
 
-void RenderPlayArea(WIN *W, GAMESTATE *state) {
-  CleanWin(W, 0);
-
-  // Render passive obstacles first (as floor tiles)
+static void RenderPassiveObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_passive_obstacles; i++) {
     PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
-
     const char *symbol = "?";
     int color = DEFAULT_COLOR;
 
@@ -351,14 +347,9 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
       }
     }
   }
+}
 
-  for (int i = 0; i < state->level->num_totems; i++) {
-    TOTEM *totem = &state->level->totems[i];
-    if (totem->is_collected)
-      continue;
-    SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
-  }
-
+static void RenderPowerups(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_powerups; i++) {
     POWERUP *powerup = &state->level->powerups[i];
     if (powerup->is_collected)
@@ -390,49 +381,47 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
 
     SafePrintEntity(W, powerup->pos.x, powerup->pos.y, symbol, state, color);
   }
+}
 
-  // Render player
-  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
-                  PLAYER_COLOR);
+static int GetEnemyColor(ENEMY *enemy, GAMESTATE *state) {
+  int enemy_color = ENEMY_COLOR;
 
-  for (int i = 0; i < state->level->num_enemies; i++) {
-    ENEMY *enemy = &state->level->enemies[i];
-    int enemy_color = ENEMY_COLOR;
+  if (enemy->type == ENEMY_TELEPORTER) {
+    int frames_since = state->frames_elapsed - enemy->last_teleport_frame;
+    int frames_until =
+        (TELEPORTER_INTERVAL_FRAMES / enemy->speed) - frames_since;
 
-    // Determine color based on enemy type and state
-    if (enemy->type == ENEMY_TELEPORTER) {
-      // Flash warning color when about to teleport
-      int frames_since_last_teleport =
-          state->frames_elapsed - enemy->last_teleport_frame;
-      int frames_until_teleport = (TELEPORTER_INTERVAL_FRAMES / enemy->speed) -
-                                  frames_since_last_teleport;
-
-      if (frames_until_teleport >= 0 &&
-          frames_until_teleport <= TELEPORTER_WARNING_FRAMES) {
-        // Alternate between warning color and normal enemy color (3:2 ratio)
-        enemy_color = frames_until_teleport % 5 >= 2 ? TELEPORTER_WARNING_COLOR
-                                                     : ENEMY_COLOR;
-      }
-    } else if (enemy->type == ENEMY_CHASER) {
-      // Change color based on chase state
-      enemy_color =
-          enemy->is_chasing ? CHASER_ANGRY_COLOR : CHASER_SLEEPING_COLOR;
+    if (frames_until >= 0 && frames_until <= TELEPORTER_WARNING_FRAMES) {
+      enemy_color = frames_until % 5 >= 2 ? TELEPORTER_WARNING_COLOR : ENEMY_COLOR;
     }
-
-    SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state,
-                    enemy_color);
+  } else if (enemy->type == ENEMY_CHASER) {
+    enemy_color = enemy->is_chasing ? CHASER_ANGRY_COLOR : CHASER_SLEEPING_COLOR;
   }
 
+  return enemy_color;
+}
+
+static void RenderEnemies(WIN *W, GAMESTATE *state) {
+  for (int i = 0; i < state->level->num_enemies; i++) {
+    ENEMY *enemy = &state->level->enemies[i];
+    int color = GetEnemyColor(enemy, state);
+    SafePrintEntity(W, enemy->current_pos.x, enemy->current_pos.y, "E", state,
+                    color);
+  }
+}
+
+static void RenderStaticObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_obstacles; i++) {
     OBSTACLE *obs = &state->level->obstacles[i];
-
     for (int x = obs->pos1.x; x <= obs->pos2.x; x++) {
       for (int y = obs->pos1.y; y <= obs->pos2.y; y++) {
         SafePrintEntity(W, x, y, "#", state, OBSTACLE_COLOR);
       }
     }
   }
+}
 
+static void RenderBoundaries(WIN *W, GAMESTATE *state) {
   for (int x = 0; x < state->level->width; x++) {
     SafePrintEntity(W, x, -1, "-", state, OBSTACLE_COLOR);
     SafePrintEntity(W, x, state->level->height, "-", state, OBSTACLE_COLOR);
@@ -442,29 +431,51 @@ void RenderPlayArea(WIN *W, GAMESTATE *state) {
     SafePrintEntity(W, -1, y, "|", state, OBSTACLE_COLOR);
     SafePrintEntity(W, state->level->width, y, "|", state, OBSTACLE_COLOR);
   }
+}
 
+static void RenderAggressiveObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
 
     if (obs->type == AGGRESSIVE_SPIKE) {
       const char *spike_symbols[] = {"^", "v", "<", ">"};
-
       if (obs->is_active) {
         SafePrintEntity(W, obs->pos.x, obs->pos.y,
                         spike_symbols[obs->direction % 4], state, SPIKE_COLOR);
       }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
       SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
-
       if (obs->is_active) {
         for (int j = 1; j <= obs->fire_length; j++) {
           POSITION fire_pos = obs->pos;
           MoveInDirection(&fire_pos, obs->direction, j);
-          SafePrintEntity(W, fire_pos.x, fire_pos.y, "*", state, FIREJET_COLOR);
+          SafePrintEntity(W, fire_pos.x, fire_pos.y, "*", state,
+                          FIREJET_COLOR);
         }
       }
     }
   }
+}
+
+void RenderPlayArea(WIN *W, GAMESTATE *state) {
+  CleanWin(W, 0);
+
+  RenderPassiveObstacles(W, state);
+
+  for (int i = 0; i < state->level->num_totems; i++) {
+    TOTEM *totem = &state->level->totems[i];
+    if (!totem->is_collected) {
+      SafePrintEntity(W, totem->pos.x, totem->pos.y, "T", state, TOTEM_COLOR);
+    }
+  }
+
+  RenderPowerups(W, state);
+  SafePrintEntity(W, state->player_pos.x, state->player_pos.y, "@", state,
+                  PLAYER_COLOR);
+  RenderEnemies(W, state);
+  RenderStaticObstacles(W, state);
+  RenderBoundaries(W, state);
+  RenderAggressiveObstacles(W, state);
 
   wrefresh(W->window);
 }

@@ -214,7 +214,7 @@ typedef struct {
   char level_name[MAX_LEVEL_NAME_LEN];
   int time_limit;
   int lifes;
-  int win_score;
+  int total_totems_score;
   int width, height;
   POSITION start_pos;
   int num_totems;

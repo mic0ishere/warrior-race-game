@@ -36,7 +36,7 @@ A terminal-based roguelike game written in C using ncurses library.  Players nav
 - `ENEMY`: Has `pos1`, `pos2` (patrol endpoints), `current_pos`, `speed`, `direction`, `type` (HORIZONTAL/VERTICAL/RANDOM WALKER, CHASER, TELEPORTER)
 - `GAMESTATE`: Central game state - player position, score, lifes, time, level reference
 - `WIN`: ncurses window wrapper with position and color info
-- `LEVEL`: All level data - config (time, lifes, win_score), arrays of totems/obstacles/enemies
+- `LEVEL`: All level data - config (time, lifes, etc), arrays of totems/obstacles/enemies
 - `OBSTACLE`: Rectangular area with top-left and bottom-right positions
 - `AGGRESSIVE_OBSTACLE`: Obstacle with activation interval and active state, types: SPIKE, FIREJET
 
@@ -71,7 +71,6 @@ WIDTH=30             # Level width (max X coordinate + 1)
 HEIGHT=30            # Level height (max Y coordinate + 1)
 START_X=0            # Player spawn X
 START_Y=0            # Player spawn Y
-WIN_SCORE=30         # Points needed to win
 
 [TOTEMS]
 # (x,y) points

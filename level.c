@@ -178,24 +178,7 @@ PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
   return obs;
 }
 
-LEVEL *LoadLevel(const char *filename) {
-  LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
-
-  if (level == NULL) {
-    return NULL;
-  }
-
-  // Extract level name from filename
-  char *level_name = GetLevelName(filename);
-  strncpy(level->level_name, level_name, MAX_LEVEL_NAME_LEN - 1);
-  level->level_name[MAX_LEVEL_NAME_LEN - 1] = '\0';
-
-  FILE *file = fopen(filename, "r");
-  if (file == NULL) {
-    free(level);
-    return NULL;
-  }
-
+static void InitLevelArrays(LEVEL *level) {
   level->totems = NULL;
   level->obstacles = NULL;
   level->enemies = NULL;
@@ -208,21 +191,120 @@ LEVEL *LoadLevel(const char *filename) {
   level->num_aggressive_obstacles = 0;
   level->num_powerups = 0;
   level->num_passive_obstacles = 0;
+  level->total_totems_score = 0;
+}
 
+static int ParseConfigLine(const char *line, LEVEL *level) {
+  sscanf(line, "TIME=%d", &level->time_limit);
+  sscanf(line, "LIFES=%d", &level->lifes);
+  sscanf(line, "WIDTH=%d", &level->width);
+  sscanf(line, "HEIGHT=%d", &level->height);
+  sscanf(line, "START_X=%d", &level->start_pos.x);
+  sscanf(line, "START_Y=%d", &level->start_pos.y);
+  return TRUE;
+}
+
+static int AddTotemEntity(const char *line, LEVEL *level) {
+  TOTEM new_totem;
+  new_totem.is_collected = FALSE;
+  sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
+         &new_totem.points);
+  level->totems = (TOTEM *)AddLevelEntity(level->totems, sizeof(TOTEM),
+                                          &level->num_totems, &new_totem);
+
+  level->total_totems_score += new_totem.points;
+
+  return (level->totems != NULL);
+}
+
+static int AddObstacleEntity(const char *line, LEVEL *level) {
+  OBSTACLE new_obstacle;
+  sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x, &new_obstacle.pos1.y,
+         &new_obstacle.pos2.x, &new_obstacle.pos2.y);
+  level->obstacles = (OBSTACLE *)AddLevelEntity(
+      level->obstacles, sizeof(OBSTACLE), &level->num_obstacles, &new_obstacle);
+  return (level->obstacles != NULL);
+}
+
+static int AddEnemyEntity(const char *line, LEVEL *level) {
+  ENEMY enemy = LoadEnemy(line, level->num_enemies);
+  level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
+                                           &level->num_enemies, &enemy);
+  return (level->enemies != NULL);
+}
+
+static int AddAggObstEntity(const char *line, LEVEL *level) {
+  AGGRESSIVE_OBSTACLE obs =
+      LoadAggressiveObstacle(line, level->num_aggressive_obstacles);
+  level->aggressive_obstacles = (AGGRESSIVE_OBSTACLE *)AddLevelEntity(
+      level->aggressive_obstacles, sizeof(AGGRESSIVE_OBSTACLE),
+      &level->num_aggressive_obstacles, &obs);
+  return (level->aggressive_obstacles != NULL);
+}
+
+static int AddPowerupEntity(const char *line, LEVEL *level) {
+  POWERUP p = LoadPowerup(line, level->num_powerups);
+  level->powerups = (POWERUP *)AddLevelEntity(level->powerups, sizeof(POWERUP),
+                                              &level->num_powerups, &p);
+  return (level->powerups != NULL);
+}
+
+static int AddPassiveObstEntity(const char *line, LEVEL *level) {
+  PASSIVE_OBSTACLE obs =
+      LoadPassiveObstacle(line, level->num_passive_obstacles);
+  level->passive_obstacles = (PASSIVE_OBSTACLE *)AddLevelEntity(
+      level->passive_obstacles, sizeof(PASSIVE_OBSTACLE),
+      &level->num_passive_obstacles, &obs);
+  return (level->passive_obstacles != NULL);
+}
+
+static int ProcessLevelSection(const char *line, const char *section,
+                               LEVEL *level) {
+  if (strcmp(section, "[CONFIG]") == 0)
+    return ParseConfigLine(line, level);
+  if (strcmp(section, "[TOTEMS]") == 0)
+    return AddTotemEntity(line, level);
+  if (strcmp(section, "[OBSTACLES]") == 0)
+    return AddObstacleEntity(line, level);
+  if (strcmp(section, "[ENEMIES]") == 0)
+    return AddEnemyEntity(line, level);
+  if (strcmp(section, "[AGGRESSIVE_OBSTACLES]") == 0)
+    return AddAggObstEntity(line, level);
+  if (strcmp(section, "[POWERUPS]") == 0)
+    return AddPowerupEntity(line, level);
+  if (strcmp(section, "[PASSIVE_OBSTACLES]") == 0)
+    return AddPassiveObstEntity(line, level);
+  return TRUE;
+}
+
+LEVEL *LoadLevel(const char *filename) {
+  LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
+  if (!level)
+    return NULL;
+
+  char *lname = GetLevelName(filename);
+  strncpy(level->level_name, lname, MAX_LEVEL_NAME_LEN - 1);
+  level->level_name[MAX_LEVEL_NAME_LEN - 1] = '\0';
+
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    free(level);
+    return NULL;
+  }
+
+  InitLevelArrays(level);
   char line[MAX_LINE_LEN];
-  char *current_section = NULL;
+  char *section = NULL;
 
   while (fgets(line, MAX_LINE_LEN, file)) {
     line[strcspn(line, "\n")] = 0;
-    if (strlen(line) == 0 || line[0] == '#') {
+    if (!strlen(line) || line[0] == '#')
       continue;
-    }
 
     if (line[0] == '[' && line[strlen(line) - 1] == ']') {
-      free(current_section);
-      current_section = strdup(line);
-      if (current_section == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for section name\n");
+      free(section);
+      section = strdup(line);
+      if (!section) {
         FreeLevel(level);
         fclose(file);
         return NULL;
@@ -230,97 +312,20 @@ LEVEL *LoadLevel(const char *filename) {
       continue;
     }
 
-    if (current_section == NULL) {
+    if (!section) {
       continue;
     }
 
-    if (strcmp(current_section, "[CONFIG]") == 0) {
-      sscanf(line, "TIME=%d", &level->time_limit);
-      sscanf(line, "LIFES=%d", &level->lifes);
-      sscanf(line, "WIDTH=%d", &level->width);
-      sscanf(line, "HEIGHT=%d", &level->height);
-      sscanf(line, "START_X=%d", &level->start_pos.x);
-      sscanf(line, "START_Y=%d", &level->start_pos.y);
-      sscanf(line, "WIN_SCORE=%d", &level->win_score);
-    } else if (strcmp(current_section, "[TOTEMS]") == 0) {
-      TOTEM new_totem;
-      new_totem.is_collected = FALSE;
-      sscanf(line, "(%d,%d) %d", &new_totem.pos.x, &new_totem.pos.y,
-             &new_totem.points);
-
-      level->totems = (TOTEM *)AddLevelEntity(level->totems, sizeof(TOTEM),
-                                              &level->num_totems, &new_totem);
-      if (level->totems == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
-
-    } else if (strcmp(current_section, "[OBSTACLES]") == 0) {
-      OBSTACLE new_obstacle;
-      sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x,
-             &new_obstacle.pos1.y, &new_obstacle.pos2.x, &new_obstacle.pos2.y);
-
-      level->obstacles =
-          (OBSTACLE *)AddLevelEntity(level->obstacles, sizeof(OBSTACLE),
-                                     &level->num_obstacles, &new_obstacle);
-      if (level->obstacles == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
-    } else if (strcmp(current_section, "[ENEMIES]") == 0) {
-      ENEMY enemy = LoadEnemy(line, level->num_enemies);
-      level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
-                                               &level->num_enemies, &enemy);
-      if (level->enemies == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
-    } else if (strcmp(current_section, "[AGGRESSIVE_OBSTACLES]") == 0) {
-      AGGRESSIVE_OBSTACLE obs =
-          LoadAggressiveObstacle(line, level->num_aggressive_obstacles);
-
-      level->aggressive_obstacles = (AGGRESSIVE_OBSTACLE *)AddLevelEntity(
-          level->aggressive_obstacles, sizeof(AGGRESSIVE_OBSTACLE),
-          &level->num_aggressive_obstacles, &obs);
-
-      if (level->aggressive_obstacles == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
-    } else if (strcmp(current_section, "[POWERUPS]") == 0) {
-      POWERUP powerup = LoadPowerup(line, level->num_powerups);
-      level->powerups = (POWERUP *)AddLevelEntity(
-          level->powerups, sizeof(POWERUP), &level->num_powerups, &powerup);
-      if (level->powerups == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
-    } else if (strcmp(current_section, "[PASSIVE_OBSTACLES]") == 0) {
-      PASSIVE_OBSTACLE obs =
-          LoadPassiveObstacle(line, level->num_passive_obstacles);
-      level->passive_obstacles = (PASSIVE_OBSTACLE *)AddLevelEntity(
-          level->passive_obstacles, sizeof(PASSIVE_OBSTACLE),
-          &level->num_passive_obstacles, &obs);
-      if (level->passive_obstacles == NULL) {
-        free(current_section);
-        FreeLevel(level);
-        fclose(file);
-        return NULL;
-      }
+    int processed_section = ProcessLevelSection(line, section, level);
+    if (!processed_section) {
+      free(section);
+      FreeLevel(level);
+      fclose(file);
+      return NULL;
     }
   }
 
-  free(current_section);
+  free(section);
   fclose(file);
   return level;
 }
