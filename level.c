@@ -191,6 +191,7 @@ static void InitLevelArrays(LEVEL *level) {
   level->num_aggressive_obstacles = 0;
   level->num_powerups = 0;
   level->num_passive_obstacles = 0;
+  level->total_totems_score = 0;
 }
 
 static int ParseConfigLine(const char *line, LEVEL *level) {
@@ -200,7 +201,6 @@ static int ParseConfigLine(const char *line, LEVEL *level) {
   sscanf(line, "HEIGHT=%d", &level->height);
   sscanf(line, "START_X=%d", &level->start_pos.x);
   sscanf(line, "START_Y=%d", &level->start_pos.y);
-  sscanf(line, "WIN_SCORE=%d", &level->win_score);
   return TRUE;
 }
 
@@ -211,6 +211,9 @@ static int AddTotemEntity(const char *line, LEVEL *level) {
          &new_totem.points);
   level->totems = (TOTEM *)AddLevelEntity(level->totems, sizeof(TOTEM),
                                           &level->num_totems, &new_totem);
+
+  level->total_totems_score += new_totem.points;
+
   return (level->totems != NULL);
 }
 

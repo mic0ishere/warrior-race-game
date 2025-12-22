@@ -538,7 +538,15 @@ static int CheckForGameEnd(GAMESTATE *state) {
     return TRUE;
   }
 
-  if (state->score >= state->level->win_score) {
+  int all_totems_collected = TRUE;
+  for (int i = 0; i < state->level->num_totems; i++) {
+    if (!state->level->totems[i].is_collected) {
+      all_totems_collected = FALSE;
+      break;
+    }
+  }
+  
+  if (all_totems_collected) {
     state->status = WIN_POINTS;
     return TRUE;
   }

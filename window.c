@@ -199,7 +199,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
   mvwprintw(W->window, 1, 2, "Score: %d/%d  Time left: %d s  Lifes: %d/%d",
-            state->score, state->level->win_score,
+            state->score, state->level->total_totems_score,
             state->level->time_limit - state->time_elapsed, state->lifes_left,
             state->level->lifes);
 
