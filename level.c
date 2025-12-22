@@ -241,8 +241,8 @@ static int AddAggObstEntity(const char *line, LEVEL *level) {
 
 static int AddPowerupEntity(const char *line, LEVEL *level) {
   POWERUP p = LoadPowerup(line, level->num_powerups);
-  level->powerups = (POWERUP *)AddLevelEntity(
-      level->powerups, sizeof(POWERUP), &level->num_powerups, &p);
+  level->powerups = (POWERUP *)AddLevelEntity(level->powerups, sizeof(POWERUP),
+                                              &level->num_powerups, &p);
   return (level->powerups != NULL);
 }
 
@@ -274,12 +274,6 @@ static int ProcessLevelSection(const char *line, const char *section,
   return TRUE;
 }
 
-static void CleanupLevelLoad(char *section, LEVEL *level, FILE *file) {
-  free(section);
-  FreeLevel(level);
-  fclose(file);
-}
-
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
   if (!level)
@@ -308,14 +302,22 @@ LEVEL *LoadLevel(const char *filename) {
       free(section);
       section = strdup(line);
       if (!section) {
-        CleanupLevelLoad(NULL, level, file);
+        FreeLevel(level);
+        fclose(file);
         return NULL;
       }
       continue;
     }
 
-    if (section && !ProcessLevelSection(line, section, level)) {
-      CleanupLevelLoad(section, level, file);
+    if (!section) {
+      continue;
+    }
+
+    int processed_section = ProcessLevelSection(line, section, level);
+    if (!processed_section) {
+      free(section);
+      FreeLevel(level);
+      fclose(file);
       return NULL;
     }
   }

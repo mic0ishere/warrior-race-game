@@ -161,27 +161,6 @@ static void RenderLevelList(WIN *W, char levels[][256], int num_levels,
   }
 }
 
-static int HandleLevelInput(int c, int *highlight, int num_levels) {
-  switch (c) {
-  case UP:
-    *highlight = (*highlight - 1 + num_levels) % num_levels;
-    return 0;
-  case DOWN:
-    *highlight = (*highlight + 1) % num_levels;
-    return 0;
-  case CONFIRM:
-    return 1;
-  case QUIT:
-    return -1;
-  default:
-    if (c >= '1' && c <= '0' + num_levels) {
-      *highlight = c - '1';
-      return 1;
-    }
-    return 0;
-  }
-}
-
 LEVEL *ShowLevelSelector(WIN *W) {
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
@@ -202,8 +181,8 @@ LEVEL *ShowLevelSelector(WIN *W) {
     mvwprintw(win, 2, (W->cols - strlen(title)) / 2, "%s", title);
 
     int visible_items = W->rows - 10;
-    int scroll_offset = (highlight >= visible_items) ? 
-                        (highlight - visible_items + 1) : 0;
+    int scroll_offset =
+        (highlight >= visible_items) ? (highlight - visible_items + 1) : 0;
 
     RenderLevelList(W, levels, num_levels, highlight, scroll_offset);
 
@@ -211,18 +190,33 @@ LEVEL *ShowLevelSelector(WIN *W) {
               instructions);
     wrefresh(win);
 
-    int result = HandleLevelInput(wgetch(win), &highlight, num_levels);
-    if (result == 1) {
+    int c = wgetch(win);
+
+    switch (c) {
+    case UP:
+      highlight = (highlight - 1 + num_levels) % num_levels;
+      break;
+    case DOWN:
+      highlight = (highlight + 1) % num_levels;
+      break;
+    case CONFIRM:
       return LoadLevel(levels[highlight]);
-    } else if (result == -1) {
+    case QUIT:
       return NULL;
+    default:
+      if (c >= '1' && c <= '0' + num_levels) {
+        highlight = c - '1';
+        return LoadLevel(levels[highlight]);
+      }
+      break;
     }
   }
 
   return NULL;
 }
 
-static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[], int num_rankings) {
+static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[],
+                            int num_rankings) {
   if (num_rankings == 0) {
     const char *no_rankings = "No rankings yet for this level";
     mvwprintw(W->window, 8, (W->cols - strlen(no_rankings)) / 2, "%s",
@@ -240,28 +234,12 @@ static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[], int num_rankings) 
   }
 }
 
-static int HandleRankingInput(int c, int *current_level, int num_levels) {
-  switch (c) {
-  case LEFT:
-    *current_level = (*current_level - 1 + num_levels) % num_levels;
-    return 0;
-  case RIGHT:
-    *current_level = (*current_level + 1) % num_levels;
-    return 0;
-  case QUIT:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static void RenderRankingHeader(WIN *W, int current_level,
-                                char levels[][256]) {
+static void RenderRankingHeader(WIN *W, int current_level, char levels[][256]) {
   const char *title = "=== GAME RANKING ===";
   mvwprintw(W->window, 2, (W->cols - strlen(title)) / 2, "%s", title);
 
   char *level_name = GetLevelName(levels[current_level]);
-  char level_title[100];
+  char level_title[COLS];
   snprintf(level_title, sizeof(level_title), "Level: %s", level_name);
   mvwprintw(W->window, 4, (W->cols - strlen(level_title)) / 2, "%s",
             level_title);
@@ -301,8 +279,18 @@ void ShowRanking(WIN *W) {
 
     wrefresh(win);
 
-    if (HandleRankingInput(wgetch(win), &current_level, num_levels)) {
+    char c = wgetch(win);
+    switch (c) {
+    case LEFT:
+      current_level = (current_level - 1 + num_levels) % num_levels;
+      break;
+    case RIGHT:
+      current_level = (current_level + 1) % num_levels;
+      break;
+    case QUIT:
       return;
+    default:
+      break;
     }
   }
 }
@@ -361,7 +349,7 @@ static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
         mvwaddch(win, y, current_x + 1, current[1]);
         mvwaddch(win, y, current_x + 2, *"]");
         wattroff(win, COLOR_PAIR(color));
-        
+
         current += 3;
         current_x += 3;
         found_entity = TRUE;

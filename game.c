@@ -509,39 +509,6 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
   wrefresh(playwin->window);
 }
 
-static int HandlePlayerMovement(GAMESTATE *state, int ch, POSITION *wanted_pos) {
-  wanted_pos->x = state->player_pos.x;
-  wanted_pos->y = state->player_pos.y;
-  int movement_attempted = FALSE;
-
-  if (ch == UP) {
-    wanted_pos->y++;
-    movement_attempted = TRUE;
-  } else if (ch == DOWN) {
-    wanted_pos->y--;
-    movement_attempted = TRUE;
-  } else if (ch == LEFT) {
-    wanted_pos->x--;
-    movement_attempted = TRUE;
-  } else if (ch == RIGHT) {
-    wanted_pos->x++;
-    movement_attempted = TRUE;
-  }
-
-  return movement_attempted;
-}
-
-static int CheckStickyFloor(GAMESTATE *state) {
-  for (int i = 0; i < state->level->num_passive_obstacles; i++) {
-    PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
-    if (obs->type == PASSIVE_STICKY_FLOOR &&
-        CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
 static void UpdateGameState(GAMESTATE *state) {
   if (state->extra_life_timer > 0) {
     state->extra_life_timer--;
@@ -560,7 +527,7 @@ static void UpdateGameState(GAMESTATE *state) {
   state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
 }
 
-static int CheckGameStatus(GAMESTATE *state) {
+static int CheckForGameEnd(GAMESTATE *state) {
   if (state->time_elapsed >= state->level->time_limit) {
     state->status = GAME_TIMEOUT;
     return TRUE;
@@ -580,10 +547,34 @@ static int CheckGameStatus(GAMESTATE *state) {
 }
 
 static void ProcessPlayerMovement(GAMESTATE *state, int ch) {
-  POSITION wanted_pos;
-  int movement_attempted = HandlePlayerMovement(state, ch, &wanted_pos);
+  POSITION wanted_pos = state->player_pos;
+  int movement_attempted = FALSE;
 
-  if (movement_attempted && CheckStickyFloor(state)) {
+  if (ch == UP) {
+    wanted_pos.y++;
+    movement_attempted = TRUE;
+  } else if (ch == DOWN) {
+    wanted_pos.y--;
+    movement_attempted = TRUE;
+  } else if (ch == LEFT) {
+    wanted_pos.x--;
+    movement_attempted = TRUE;
+  } else if (ch == RIGHT) {
+    wanted_pos.x++;
+    movement_attempted = TRUE;
+  }
+
+  int is_on_sticky = FALSE;
+  for (int i = 0; i < state->level->num_passive_obstacles; i++) {
+    PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
+    if (obs->type == PASSIVE_STICKY_FLOOR &&
+        CheckWithinBounds(obs->pos1, obs->pos2, state->player_pos)) {
+      is_on_sticky = TRUE;
+      break;
+    }
+  }
+
+  if (movement_attempted && is_on_sticky) {
     state->sticky_floor_counter++;
     if (state->sticky_floor_counter < STICKY_FLOOR_SLOWDOWN) {
       movement_attempted = FALSE;
@@ -651,7 +642,7 @@ void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
     ProcessPlayerMovement(state, ch);
     UpdateAndRenderFrame(playwin, statwin, debugwin, state);
 
-    if (CheckGameStatus(state)) {
+    if (CheckForGameEnd(state)) {
       break;
     }
 
