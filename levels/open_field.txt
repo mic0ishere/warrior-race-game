@@ -5,7 +5,6 @@ WIDTH=35
 HEIGHT=35
 START_X=0
 START_Y=0
-WIN_SCORE=40
 
 [TOTEMS]
 # (x,y) points
