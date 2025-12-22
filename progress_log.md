@@ -133,3 +133,9 @@
   - The code generated was successful, but I wasn't happy with the solution used to read the instructions file, so I decided to ask Copilot to refactor it into a separate C header file, which it did well.
   - Moreover, I asked Copilot to extract and improve the text rendering function for instructions screen, which it did successfully.
   - Tired of prompting Copilot for minor fixes, I have manually updated line rendering function to make it more versatile and reusable.
+
+- Performed a thorough code review of the entire project.
+ - Asked Copilot Agent (Claude Sonnet 4.5) to identify bugs, quality issues and general areas for improvement.
+ - It provided a comprehensive list of suggestions, including refactoring opportunities, performance optimizations, and code style improvements.
+ - I have manually reviewed these suggestions and implemented the most relevant ones with the help of Copilot Agent and Copilot Next Edits.
+ - Additionally, while modifying the code, I have fixed some minor bugs and inconsistencies that I found during testing.
