@@ -94,3 +94,42 @@
   1. Initial task description <-> ChatGPT for prompt refinement
   2. Copilot Agent for code generation <-> Iterative improvements
   3. Manual review and refactoring
+
+### 17-12-2025
+
+- Updated `copilot_instructions.md` (file which is used by Copilot Agent to understand the project) to reflect new development requirements.
+  - Revised the project description, technical stack, and current development phase.
+  - Added instructions about code style preferences, quality and maintainability expectations.
+  - This will hopefully help Copilot provide more relevant suggestions in future development sessions.
+
+### 20-12-2025
+
+- Added power-ups: shield, double points, extra life, and time freeze.
+  - Firstly, asked ChatGPT for ideas on power-ups and prompt refinement for Copilot Agent (Claude Sonnet 4.5).
+  - While initial implementation Copilot suggested a good structure for power-up management, there were some bugs with power-up user interface display and their effects.
+  - After prompting Copilot to fix the issues, it has provided working solutions, although they still lacked some critical user experience elements.
+  - I have once again asked Copilot to address these problems, which it did successfully.
+  - Finally, after testing and playing the game, I have manually adjusted timings to ensure balanced gameplay.
+  - Moreover, while reviewing the code, I extracted LoadPowerup out of the LoadLevel function to shorten it.
+
+- Added passive obstacles: teleport pads, sticky floor, and tall grass.
+  - Once again, I have first collaborated with ChatGPT to create a prompt for Copilot Agent (Claude Sonnet 4.5).
+  - The initial code lacked some features, but with a prompt with list of required changes, Copilot was able to deliver working implementations.
+  - As usual, I conducted a review of the generated code and refactored some parts that were not in line with my code style preferences.
+
+### 21-12-2025
+
+- Improved legacy levels to include new enemies, obstacles, and power-ups.
+  - Copilot Agent (GPT-5.1-Codex-Max) assisted with level file updates and simulating gameplay.
+  - It helped to update old level files to include new entities and obstacles.
+  - While the generated levels were functional, they weren't very engaging. 
+  - IDEA: This is an area where I would need to provide significalny more detailed gameplay mechanics and level design instructions in future, to get better results from AI. However, as I'm not a good level designer myself, creation of such prompts is out of my current capabilities.
+
+- Added an instructions screen in the menu to explain game controls and mechanics.
+  - Here, I have firstly used Google Gemini to generate the prompt for Copilot Agent (Claude Sonnet 4.5).
+  - Gemini's output was more structured and detailed, which helped Copilot to create a better implementation.
+  - Copilot's implementation was extremely good, having only small issues in regards to correct entity character.
+  - I have asked Copilot to fix these problems and extract the instructions text into a separate file for easier future modifications, which it did successfully.
+  - The code generated was successful, but I wasn't happy with the solution used to read the instructions file, so I decided to ask Copilot to refactor it into a separate C header file, which it did well.
+  - Moreover, I asked Copilot to extract and improve the text rendering function for instructions screen, which it did successfully.
+  - Tired of prompting Copilot for minor fixes, I have manually updated line rendering function to make it more versatile and reusable.
