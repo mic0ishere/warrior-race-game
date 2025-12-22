@@ -395,7 +395,7 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
   }
 }
 
-static int TryTeleportPlayer(GAMESTATE *state, PASSIVE_OBSTACLE *obs) {
+static int AttemptPlayerTeleport(GAMESTATE *state, PASSIVE_OBSTACLE *obs) {
   int cooldown = state->frames_elapsed - state->last_teleport_frame;
   if (cooldown < TELEPORT_PAD_COOLDOWN_FRAMES) {
     return FALSE;
@@ -446,7 +446,7 @@ void CheckPassiveObstacles(GAMESTATE *state) {
     }
 
     if (obs->type == PASSIVE_TELEPORT_PAD) {
-      if (TryTeleportPlayer(state, obs)) {
+      if (AttemptPlayerTeleport(state, obs)) {
         return;
       }
     } else if (obs->type == PASSIVE_STICKY_FLOOR) {
