@@ -21,9 +21,6 @@ int main(void) {
     // Display main menu and get user's choice
     int menu_choice = ShowMainMenu(mainwin);
 
-    // Display main menu and get user's choice
-    int menu_choice = ShowMainMenu(mainwin);
-
     // Handle exit choice - cleanup and break from main loop
     if (menu_choice == MENU_EXIT) {
       CleanupWin(mainwin);
