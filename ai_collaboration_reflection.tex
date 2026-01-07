@@ -61,9 +61,9 @@
 % Title page
 \begin{titlepage}
     \centering
-    \vspace*{2cm}
+    \vspace*{4cm}
     
-    {\Huge\bfseries Reflective Analysis:\\[0.5cm] AI-Assisted Software Development\par}
+    {\Huge\bfseries AI-Assisted Project Development\par}
     
     \vspace{1cm}
     
@@ -72,17 +72,12 @@
     \vspace{2cm}
     
     \begin{tabular}{rl}
-        \textbf{Author:} & AI Agent Analysis System \\
+        \textbf{Author:} & Jacek Ejsmont \\
+        \textbf{} & in collaboration with OpenAI and Claude \\
         \textbf{Project:} & Terminal-Based Roguelike Game in C \\
         \textbf{Date:} & January 2026 \\
-        \textbf{Development Period:} & November 2025 -- December 2025 \\
+        \textbf{Active Development:} & November -- December 2025 \\
     \end{tabular}
-    
-    \vfill
-    
-    {\large Document Version: 1.0\par}
-    {\large Review Status: Final\par}
-    {\large Classification: Project Documentation\par}
     
     \vspace{1cm}
 \end{titlepage}
@@ -186,22 +181,6 @@ Task Conception -> ChatGPT/Gemini (Prompt Refinement)
         \item Manual adjustment of gameplay parameters (timing, balance, visual feedback)
     \end{itemize}
 \end{enumerate}
-
-\subsection{Workflow Evolution Timeline}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}lllll@{}}
-\toprule
-\textbf{Phase} & \textbf{Date Range} & \textbf{AI Role} & \textbf{Developer Role} & \textbf{Primary Tools} \\ \midrule
-Discovery & Nov 25--27 & Autocomplete & Architect \& Implementer & Copilot Inline \\
-Structured & Dec 3--10 & Collaborative Agent & Architect \& Reviewer & Copilot Agent (Claude) \\
-Advanced & Dec 11--21 & Specialized Ensemble & Orchestrator \& QA & Multi-tool Pipeline \\ \bottomrule
-\end{tabular}
-\caption{Workflow Evolution Timeline}
-\end{table}
-
-This evolution demonstrates progressive refinement of human-AI collaboration, moving from simple assistance to a sophisticated multi-agent workflow optimized for code quality and development velocity.
 
 \newpage
 
@@ -389,34 +368,29 @@ A consistent pattern emerged where AI implementations required multiple refineme
 
 \subsubsection*{Typical Refinement Pattern:}
 \begin{enumerate}
-    \item \textbf{Initial Implementation (70--85\% correct):}
+    \item \textbf{Initial Implementation (70--80\% correct):}
     \begin{itemize}
         \item Core functionality implemented
-        \item Major bugs absent
         \item Integration issues present
-        \item Edge cases overlooked
+        \item Edge cases sometimes overlooked
     \end{itemize}
     
-    \item \textbf{First Refinement (85--95\% correct):}
+    \item \textbf{First Refinement (80--90\% correct):}
     \begin{itemize}
         \item Integration issues resolved
-        \item Major edge cases handled
+        \item Most edge cases handled
         \item Style inconsistencies remain
-        \item Performance not optimized
     \end{itemize}
     
-    \item \textbf{Second Refinement (95--98\% correct):}
+    \item \textbf{Second Refinement (90--95\% correct):}
     \begin{itemize}
         \item Style consistency achieved
-        \item Most edge cases covered
-        \item Minor bugs present
-        \item User experience gaps identified
+        \item Minor edge cases and bugs present
     \end{itemize}
     
-    \item \textbf{Manual Finalization (98--100\%):}
+    \item \textbf{Manual Finalization (95--100\%):}
     \begin{itemize}
-        \item Final style adjustments
-        \item Gameplay balance tuning
+        \item Final style and balance adjustments
         \item Subtle interaction improvements
         \item Documentation completion
     \end{itemize}
@@ -441,11 +415,6 @@ AI tools struggled with subjective parameter selection requiring experiential ju
     \item Score calculation weights required developer judgment
 \end{itemize}
 
-\subsubsection*{Evidence:}
-\begin{quote}
-``After testing and playing the game, I have manually adjusted timings to ensure balanced gameplay.'' (December 20, 2025)
-\end{quote}
-
 \subsection{Testing and Bug Detection}
 
 While AI tools could identify certain classes of bugs, practical testing remained developer-driven:
@@ -464,18 +433,6 @@ While AI tools could identify certain classes of bugs, practical testing remaine
     \item Player could walk into firejet source positions (collision testing)
     \item Teleporters could spawn on player starting position (edge case testing)
     \item Chaser enemies needed sleep state for better gameplay (balance testing)
-\end{itemize}
-
-\subsection{Documentation and Explanation Quality}
-
-AI-generated documentation, while technically accurate, sometimes lacked pedagogical clarity:
-
-\subsubsection*{Documentation Challenges:}
-\begin{itemize}
-    \item Comments occasionally described ``what'' without explaining ``why''
-    \item Complex algorithms lacked high-level overview comments
-    \item Inline documentation sometimes over-explained obvious code
-    \item Cross-module interaction patterns not well documented
 \end{itemize}
 
 \newpage
@@ -1450,83 +1407,5 @@ This synthesis of human expertise and AI capability represents the future of sof
 The most important insight from this analysis is that AI-assisted development is a skill that requires intentional cultivation. The dramatic improvement in outcomes from the project's early phases to its conclusion demonstrates the value of systematic learning and workflow refinement. As AI tools continue to evolve, developers who invest in mastering effective collaboration patterns will find themselves with an increasingly significant competitive advantage.
 
 \newpage
-
-% Appendices
-\appendix
-
-\section{Development Timeline Summary}
-
-\begin{longtable}{@{}p{2.5cm}p{2.5cm}p{5cm}p{4cm}@{}}
-\toprule
-\textbf{Date} & \textbf{Phase} & \textbf{Key Activities} & \textbf{AI Tools Used} \\ \midrule
-\endfirsthead
-\toprule
-\textbf{Date} & \textbf{Phase} & \textbf{Key Activities} & \textbf{AI Tools Used} \\ \midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\textit{Continued on next page}} \\
-\endfoot
-\bottomrule
-\endlastfoot
-Nov 25--27 & Initial Setup & Basic game structure, ncurses setup, player movement & Copilot Inline \\
-Dec 3 & Refactoring & Modular architecture, security review & Copilot Agent (Claude) \\
-Dec 8 & Planning & Feature roadmap creation & ChatGPT \\
-Dec 10 & Feature Dev & New enemies, aggressive obstacles & Copilot Agent (Claude) \\
-Dec 11 & Menu System & Main menu, level selector & Copilot Agent (Claude) \\
-Dec 12 & Enhancement & Enemy improvements, bug fixes & Copilot Agent (Claude) \\
-Dec 14 & Content & Level design & Manual \\
-Dec 15 & Ranking & Score system, persistence & Copilot Agent (Claude) \\
-Dec 17 & Documentation & Update project docs & Manual \\
-Dec 20 & Power-ups & Shield, points, life, freeze & ChatGPT + Copilot Agent \\
-Dec 20 & Obstacles & Teleport pads, sticky floor, grass & ChatGPT + Copilot Agent \\
-Dec 21 & Polish & Instructions, code review, refinement & Gemini + Copilot Agent \\
-\caption{Development Timeline Summary}
-\end{longtable}
-
-\section{Code Quality Metrics}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}llcc@{}}
-\toprule
-\textbf{Metric} & \textbf{Value} & \textbf{Target} & \textbf{Status} \\ \midrule
-Total Lines of Code & ~3,300 & N/A & \checkmark \\
-Number of Modules & 7 & $\geq$5 & \checkmark \\
-Function Length Compliance & 100\% & 100\% & \checkmark \\
-Documentation Coverage & ~90\% & $\geq$80\% & \checkmark \\
-Memory Leaks & 0 & 0 & \checkmark \\
-Security Vulnerabilities & 0 & 0 & \checkmark \\
-Code Style Consistency & 98\% & $\geq$95\% & \checkmark \\
-Average Function Length & ~35 lines & $<$50 & \checkmark \\ \bottomrule
-\end{tabular}
-\caption{Code Quality Metrics}
-\end{table}
-
-\section{AI Tool Effectiveness Matrix}
-
-\begin{longtable}{@{}p{4cm}p{3cm}p{3cm}p{3.5cm}@{}}
-\toprule
-\textbf{Task Category} & \textbf{AI Effectiveness} & \textbf{Human Oversight Required} & \textbf{Recommended Tool} \\ \midrule
-\endfirsthead
-\toprule
-\textbf{Task Category} & \textbf{AI Effectiveness} & \textbf{Human Oversight Required} & \textbf{Recommended Tool} \\ \midrule
-\endhead
-\midrule
-\multicolumn{4}{r}{\textit{Continued on next page}} \\
-\endfoot
-\bottomrule
-\endlastfoot
-Boilerplate Code & ★★★★★ Very High & Low & Any Copilot \\
-Algorithm Implementation & ★★★★☆ High & Medium & Copilot Agent \\
-Architecture Design & ★★☆☆☆ Low & Very High & Manual + ChatGPT \\
-Bug Detection & ★★★★☆ High & Medium & Copilot Agent \\
-Code Review & ★★★★☆ High & Medium & Copilot Agent \\
-Testing & ★★★☆☆ Medium & High & Manual \\
-Documentation & ★★★★☆ High & Medium & Any AI Tool \\
-Creative Design & ★★☆☆☆ Low & Very High & Manual \\
-Prompt Creation & ★★★★☆ High & Low & ChatGPT/Gemini \\
-Style Consistency & ★★★★★ Very High & Low & Copilot Agent \\
-\caption{AI Tool Effectiveness Matrix}
-\end{longtable}
 
 \end{document}
