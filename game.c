@@ -11,6 +11,7 @@
 
 const int FRAME_TIME_MS = 1000 / FRAMES_PER_SECOND;
 
+// Initialize game state with default values for a new game session
 GAMESTATE *InitGame(LEVEL *level) {
   GAMESTATE *state = (GAMESTATE *)malloc(sizeof(GAMESTATE));
 
@@ -20,7 +21,7 @@ GAMESTATE *InitGame(LEVEL *level) {
     exit(EXIT_FAILURE);
   }
 
-  // Seed random number generator for enemy movement
+  // Seed random number generator for enemy movement and behavior
   srand((unsigned int)time(NULL));
 
   state->level = level;
@@ -40,6 +41,7 @@ GAMESTATE *InitGame(LEVEL *level) {
   state->last_teleport_frame = -TELEPORT_PAD_COOLDOWN_FRAMES;
   state->grass_vision_transition = 0;
 
+  // Initialize all power-up slots as inactive
   for (int i = 0; i < MAX_ACTIVE_POWERUPS; i++) {
     state->active_powerups[i].is_active = FALSE;
     state->active_powerups[i].frames_remaining = 0;
@@ -51,12 +53,16 @@ GAMESTATE *InitGame(LEVEL *level) {
   return state;
 }
 
+// Check if a point is within the bounds defined by two positions
 int CheckWithinBounds(POSITION pos1, POSITION pos2, POSITION point) {
   return (point.x >= pos1.x && point.x <= pos2.x && point.y >= pos1.y &&
           point.y <= pos2.y);
 }
 
+// Check if player movement to wanted_pos would result in collision
+// Returns FALSE if collision detected (blocking movement), TRUE if valid
 int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
+  // Check collision with static rectangular obstacles
   for (int i = 0; i < state->level->num_obstacles; i++) {
     OBSTACLE *obs = &state->level->obstacles[i];
     if (CheckWithinBounds(obs->pos1, obs->pos2, wanted_pos)) {
@@ -64,6 +70,7 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
     }
   }
 
+  // Determine player's movement direction for spike collision detection
   POSITION previous_pos = state->player_pos;
   AGGRESSIVE_OBSTACLE_DIRECTION player_dir;
   if (wanted_pos.x > previous_pos.x) {
@@ -76,25 +83,30 @@ int CheckCollision(GAMESTATE *state, POSITION wanted_pos) {
     player_dir = OBSTACLE_UP;
   }
 
+  // Check collision with aggressive obstacles (spikes, firejets)
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
+    // Spikes only block movement when player moves INTO the spike direction
     if (obs->type == AGGRESSIVE_SPIKE && obs->pos.x == wanted_pos.x &&
         obs->pos.y == wanted_pos.y && obs->direction == player_dir) {
       return FALSE;
     }
 
+    // Firejet source positions are solid obstacles (can't walk through)
     if (obs->type == AGGRESSIVE_FIREJET && obs->pos.x == wanted_pos.x &&
         obs->pos.y == wanted_pos.y) {
       return FALSE;
     }
   }
 
+  // Check if position is within level boundaries
   return CheckWithinBounds(
       (POSITION){0, 0},
       (POSITION){state->level->width - 1, state->level->height - 1},
       wanted_pos);
 }
 
+// Check for totems at player position and collect them (with double points if active)
 void CollectTotems(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_totems; i++) {
     TOTEM *totem = &state->level->totems[i];
@@ -110,6 +122,7 @@ void CollectTotems(GAMESTATE *state) {
   }
 }
 
+// Check if a specific power-up type is currently active for the player
 int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
   for (int i = 0; i < state->num_active_powerups; i++) {
     if (state->active_powerups[i].is_active &&
@@ -120,6 +133,7 @@ int IsPowerupActive(GAMESTATE *state, POWERUP_TYPE type) {
   return FALSE;
 }
 
+// Activate a timed power-up (double points, time freeze) with specified duration
 int ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
                          int duration_frames) {
   if (state->num_active_powerups < MAX_ACTIVE_POWERUPS) {
@@ -133,6 +147,7 @@ int ActivateTimedPowerup(GAMESTATE *state, POWERUP_TYPE type,
   return FALSE;
 }
 
+// Check for power-ups at player position and activate their effects
 void CollectPowerups(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_powerups; i++) {
     POWERUP *powerup = &state->level->powerups[i];
@@ -142,11 +157,11 @@ void CollectPowerups(GAMESTATE *state) {
 
       switch (powerup->type) {
       case POWERUP_SHIELD:
-        state->has_shield = TRUE;
+        state->has_shield = TRUE; // Protects from one enemy hit
         break;
       case POWERUP_EXTRA_LIFE:
         state->lifes_left++;
-        state->extra_life_timer = 2 * FRAMES_PER_SECOND; // 2 seconds
+        state->extra_life_timer = 2 * FRAMES_PER_SECOND; // 2 seconds display
         break;
       case POWERUP_DOUBLE_POINTS:
         ActivateTimedPowerup(state, POWERUP_DOUBLE_POINTS,
@@ -163,6 +178,7 @@ void CollectPowerups(GAMESTATE *state) {
   }
 }
 
+// Decrement remaining frames for active power-ups and remove expired ones
 void UpdateActivePowerups(GAMESTATE *state) {
   int i = 0;
   while (i < state->num_active_powerups) {
@@ -172,6 +188,7 @@ void UpdateActivePowerups(GAMESTATE *state) {
       if (state->active_powerups[i].frames_remaining <= 0) {
         state->active_powerups[i].is_active = FALSE;
 
+        // Shift remaining power-ups down in array to fill gap
         for (int j = i; j < state->num_active_powerups - 1; j++) {
           state->active_powerups[j] = state->active_powerups[j + 1];
         }
@@ -183,6 +200,7 @@ void UpdateActivePowerups(GAMESTATE *state) {
   }
 }
 
+// Move a position in the specified direction by amount cells
 void MoveInDirection(POSITION *pos, int direction, int amount) {
   switch (direction) {
   case OBSTACLE_DOWN:
@@ -200,6 +218,7 @@ void MoveInDirection(POSITION *pos, int direction, int amount) {
   }
 }
 
+// Calculate next position for enemy based on its type and current state
 POSITION NextEnemyPosition(ENEMY *enemy) {
   POSITION next_pos = enemy->current_pos;
   int move_amount = enemy->direction;
@@ -217,14 +236,17 @@ POSITION NextEnemyPosition(ENEMY *enemy) {
   return next_pos;
 }
 
+// Handle player death - decrement lives and set death reason
 void HandlePlayerKill(GAMESTATE *state, LIFE_LOST_STATUS reason) {
   state->lifes_left--;
   state->life_loss = reason;
 }
 
+// Move patrol-type enemy (horizontal/vertical) with bounce on boundaries
 static void MovePatrolEnemy(GAMESTATE *state, ENEMY *enemy) {
   POSITION wanted_pos = NextEnemyPosition(enemy);
 
+  // Bounce off obstacles or boundaries by reversing direction
   if (!CheckCollision(state, wanted_pos) ||
       !CheckWithinBounds(enemy->pos1, enemy->pos2, wanted_pos)) {
     enemy->direction *= -1;
@@ -235,6 +257,7 @@ static void MovePatrolEnemy(GAMESTATE *state, ENEMY *enemy) {
   enemy->current_pos = wanted_pos;
 }
 
+// Move random walker enemy - only moves if destination is valid
 static void MoveRandomEnemy(GAMESTATE *state, ENEMY *enemy) {
   POSITION wanted_pos = NextEnemyPosition(enemy);
 
@@ -244,15 +267,17 @@ static void MoveRandomEnemy(GAMESTATE *state, ENEMY *enemy) {
   }
 }
 
+// Move chaser enemy - pursues player when within chase radius
 static void MoveChaserEnemy(GAMESTATE *state, ENEMY *enemy) {
   int dx = state->player_pos.x - enemy->current_pos.x;
   int dy = state->player_pos.y - enemy->current_pos.y;
-  int distance = (int)sqrt(dx * dx + dy * dy);
+  int distance = (int)sqrt(dx * dx + dy * dy); // Calculate distance to player
 
   if (distance <= enemy->chase_radius) {
     enemy->is_chasing = TRUE;
     POSITION wanted_pos = enemy->current_pos;
 
+    // Move toward player on axis with greater distance
     if (abs(dx) > abs(dy)) {
       wanted_pos.x += (dx > 0) ? 1 : -1;
     } else {
@@ -264,19 +289,24 @@ static void MoveChaserEnemy(GAMESTATE *state, ENEMY *enemy) {
       enemy->current_pos = wanted_pos;
     }
   } else {
-    enemy->is_chasing = FALSE;
+    enemy->is_chasing = FALSE; // Too far, stop chasing
   }
 }
 
+// Move teleporter enemy - teleports to random location within bounds at intervals
+// Move teleporter enemy - teleports to random location within bounds at intervals
 static void MoveTeleporterEnemy(GAMESTATE *state, ENEMY *enemy) {
+  // Check if enough time has passed since last teleport (speed affects interval)
   if (state->frames_elapsed - enemy->last_teleport_frame <
       (TELEPORTER_INTERVAL_FRAMES / enemy->speed)) {
     return;
   }
 
+  // Calculate teleport range
   int range_x = enemy->pos2.x - enemy->pos1.x + 1;
   int range_y = enemy->pos2.y - enemy->pos1.y + 1;
 
+  // Choose random position within bounds
   POSITION wanted_pos;
   wanted_pos.x = enemy->pos1.x + (rand() % range_x);
   wanted_pos.y = enemy->pos1.y + (rand() % range_y);
@@ -285,13 +315,16 @@ static void MoveTeleporterEnemy(GAMESTATE *state, ENEMY *enemy) {
   int is_at_start = (wanted_pos.x == state->level->start_pos.x &&
                      wanted_pos.y == state->level->start_pos.y);
 
+  // Don't teleport onto player start position or collision
   if (!is_at_start && !is_colliding) {
     enemy->current_pos = wanted_pos;
     enemy->last_teleport_frame = state->frames_elapsed;
   }
 }
 
+// Update all enemy positions based on their type and speed
 void MoveEnemies(GAMESTATE *state) {
+  // Time freeze power-up stops all enemy movement
   if (IsPowerupActive(state, POWERUP_TIME_FREEZE)) {
     return;
   }
@@ -302,10 +335,12 @@ void MoveEnemies(GAMESTATE *state) {
       continue;
     }
 
+    // Speed-based frame throttling - faster enemies move more often
     if (state->frames_elapsed % (FRAMES_PER_SECOND / enemy->speed) != 0) {
       continue;
     }
 
+    // Move enemy based on type
     if (enemy->type == ENEMY_PATROL_HORIZONTAL ||
         enemy->type == ENEMY_PATROL_VERTICAL) {
       MovePatrolEnemy(state, enemy);
@@ -319,6 +354,7 @@ void MoveEnemies(GAMESTATE *state) {
   }
 }
 
+// Check if player collided with any enemy and handle shield/death
 void CheckPlayerEnemyCollision(GAMESTATE *state) {
   // If shield protection timer is active, player is immune
   if (state->shield_protection_timer > 0) {
@@ -329,12 +365,14 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
     ENEMY *enemy = &state->level->enemies[i];
     if (enemy->current_pos.x == state->player_pos.x &&
         enemy->current_pos.y == state->player_pos.y) {
+      // Shield absorbs one hit and grants temporary immunity
       if (state->has_shield) {
         state->has_shield = FALSE;
         state->shield_protection_timer =
             FRAMES_PER_SECOND; // 1 second of protection
         break;
       }
+      // No shield - kill player with type-specific death message
       HandlePlayerKill(state,
                        (enemy->type == ENEMY_TELEPORTER) ? LIFE_TELEPORTER_KILL
                        : (enemy->type == ENEMY_CHASER)   ? LIFE_CHASER_KILL
@@ -344,6 +382,7 @@ void CheckPlayerEnemyCollision(GAMESTATE *state) {
   }
 }
 
+// Check if player is standing on an active fire path from a firejet
 int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos) {
   if (!firejet->is_active) {
     return FALSE;
@@ -362,6 +401,7 @@ int IsOnFirePath(AGGRESSIVE_OBSTACLE *firejet, POSITION player_pos) {
   return FALSE;
 }
 
+// Update aggressive obstacle states and check for player damage
 void UpdateAggressiveObstacles(GAMESTATE *state) {
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
@@ -369,7 +409,7 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
     int frames_since_last_active =
         state->frames_elapsed - obs->last_active_frame;
 
-    // Fire for 1 second, then wait for interval
+    // Activate obstacle for 1 second, then wait for interval before next activation
     if (frames_since_last_active >= obs->active_interval) {
       obs->is_active = TRUE;
 
@@ -380,6 +420,7 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
       }
     }
 
+    // Check if player is hit by active obstacles
     if (obs->type == AGGRESSIVE_SPIKE) {
       if (obs->pos.x == state->player_pos.x &&
           obs->pos.y == state->player_pos.y && obs->is_active) {
@@ -395,6 +436,7 @@ void UpdateAggressiveObstacles(GAMESTATE *state) {
   }
 }
 
+// Attempt to teleport player to linked teleport pad (with cooldown check)
 static int AttemptPlayerTeleport(GAMESTATE *state, PASSIVE_OBSTACLE *obs) {
   int cooldown = state->frames_elapsed - state->last_teleport_frame;
   if (cooldown < TELEPORT_PAD_COOLDOWN_FRAMES) {
@@ -418,6 +460,7 @@ static int AttemptPlayerTeleport(GAMESTATE *state, PASSIVE_OBSTACLE *obs) {
   return FALSE;
 }
 
+// Update grass vision transition effect for smooth visibility changes
 static void UpdateGrassVisionTransition(GAMESTATE *state, int was_in_grass) {
   if (state->is_in_tall_grass && !was_in_grass) {
     state->grass_vision_transition = 0;
@@ -433,6 +476,7 @@ static void UpdateGrassVisionTransition(GAMESTATE *state, int was_in_grass) {
   }
 }
 
+// Check and handle passive obstacle effects (teleport pads, sticky floor, tall grass)
 void CheckPassiveObstacles(GAMESTATE *state) {
   int was_in_grass = state->is_in_tall_grass;
   state->is_in_tall_grass = FALSE;
@@ -463,6 +507,7 @@ void CheckPassiveObstacles(GAMESTATE *state) {
   }
 }
 
+// Display end-game message and save ranking (if not user quit)
 void FinishGame(WIN *playwin, GAMESTATE *state) {
   switch (state->status) {
   case GAME_TIMEOUT:
@@ -509,6 +554,7 @@ void FinishGame(WIN *playwin, GAMESTATE *state) {
   wrefresh(playwin->window);
 }
 
+// Update game state each frame (timers, enemies, obstacles, passive effects)
 static void UpdateGameState(GAMESTATE *state) {
   if (state->extra_life_timer > 0) {
     state->extra_life_timer--;
@@ -527,6 +573,7 @@ static void UpdateGameState(GAMESTATE *state) {
   state->time_elapsed = state->frames_elapsed / FRAMES_PER_SECOND;
 }
 
+// Check if game should end (timeout, out of lives, or all totems collected)
 static int CheckForGameEnd(GAMESTATE *state) {
   if (state->time_elapsed >= state->level->time_limit) {
     state->status = GAME_TIMEOUT;
@@ -554,6 +601,7 @@ static int CheckForGameEnd(GAMESTATE *state) {
   return FALSE;
 }
 
+// Process player input and handle movement with sticky floor slowdown
 static void ProcessPlayerMovement(GAMESTATE *state, int ch) {
   POSITION wanted_pos = state->player_pos;
   int movement_attempted = FALSE;
@@ -582,10 +630,11 @@ static void ProcessPlayerMovement(GAMESTATE *state, int ch) {
     }
   }
 
+  // Check if player is on sticky floor for movement slowdown
   if (movement_attempted && is_on_sticky) {
     state->sticky_floor_counter++;
     if (state->sticky_floor_counter < STICKY_FLOOR_SLOWDOWN) {
-      movement_attempted = FALSE;
+      movement_attempted = FALSE; // Skip movement - sticky floor slows player
     } else {
       state->sticky_floor_counter = 0;
     }
@@ -593,12 +642,14 @@ static void ProcessPlayerMovement(GAMESTATE *state, int ch) {
 
   if (movement_attempted && CheckCollision(state, wanted_pos)) {
     state->player_pos = wanted_pos;
+    // Remove shield immunity after player moves
     if (state->shield_protection_timer > 0) {
       state->shield_protection_timer = 0;
     }
   }
 }
 
+// Update and render one frame - collect items, update state, render everything
 static void UpdateAndRenderFrame(WIN *playwin, WIN *statwin, WIN *debugwin,
                                  GAMESTATE *state) {
   snprintf(state->debug_msg, MAX_DEBUG_LEN, "Player pos: (%d,%d)",
@@ -615,15 +666,17 @@ static void UpdateAndRenderFrame(WIN *playwin, WIN *statwin, WIN *debugwin,
   wrefresh(playwin->window);
 }
 
+// Display life loss message and respawn player at start position
 static void HandleLifeLoss(WIN *playwin, GAMESTATE *state) {
   if (state->life_loss != LIFE_STATUS_NONE) {
     ShowLifeLoss(playwin, state->life_loss);
     state->life_loss = LIFE_STATUS_NONE;
     state->player_pos = state->level->start_pos;
-    usleep(2 * 1000 * 1000);
+    usleep(2 * 1000 * 1000); // 2 second delay after respawn
   }
 }
 
+// Main game loop - handles input, updates game state, renders at 20 FPS
 void MainLoop(WIN *playwin, WIN *statwin, WIN *debugwin, GAMESTATE *state) {
   int ch;
   int is_paused = FALSE;
