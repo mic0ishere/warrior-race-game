@@ -5,3 +5,11 @@
 .vscode/settings.json
 warrior_race
 rankings.dat
+
+# LaTeX build artifacts
+*.aux
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
