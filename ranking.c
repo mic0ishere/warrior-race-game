@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 
+// Comparison function for sorting rankings by score (descending order)
 static int compare_scores(const void *a, const void *b) {
   const RANKING_ENTRY *entry_a = (const RANKING_ENTRY *)a;
   const RANKING_ENTRY *entry_b = (const RANKING_ENTRY *)b;
@@ -12,6 +13,7 @@ static int compare_scores(const void *a, const void *b) {
   return entry_b->final_score - entry_a->final_score;
 }
 
+// Calculate final score from game state (totems + life bonus + time bonus)
 int CalculateFinalScore(GAMESTATE *state) {
   int time_left = MAX(0, state->level->time_limit - state->time_elapsed);
 
@@ -22,12 +24,14 @@ int CalculateFinalScore(GAMESTATE *state) {
   return final_score;
 }
 
+// Write a single ranking entry to file in plaintext format
 void WriteRankingEntry(FILE *file, RANKING_ENTRY *entry) {
   fprintf(file, "%s|%d|%d|%d|%d|%ld\n", entry->level_name, entry->final_score,
           entry->totems_score, entry->lives_left, entry->time_left,
           (long)entry->timestamp);
 }
 
+// Save new ranking entry to file (keeps top 10 per level)
 int SaveRanking(const char *level_name, GAMESTATE *state) {
   // Create new entry
   RANKING_ENTRY new_entry;
@@ -40,7 +44,7 @@ int SaveRanking(const char *level_name, GAMESTATE *state) {
   new_entry.final_score = CalculateFinalScore(state);
   new_entry.timestamp = time(NULL);
 
-  // Load rankings for current level
+  // Load rankings for current level (top 10)
   RANKING_ENTRY rankings[MAX_RANKINGS_PER_LEVEL + 1];
   int num_rankings =
       GetLevelRankings(level_name, rankings, MAX_RANKINGS_PER_LEVEL);
@@ -49,10 +53,10 @@ int SaveRanking(const char *level_name, GAMESTATE *state) {
   rankings[num_rankings] = new_entry;
   num_rankings++;
 
-  // Sort new rankings by score
+  // Sort new rankings by score (descending)
   qsort(rankings, num_rankings, sizeof(RANKING_ENTRY), compare_scores);
 
-  // Load all existing rankings
+  // Load all existing rankings from other levels
   RANKING_ENTRY all_rankings[MAX_TOTAL_RANKINGS];
   int total_count = LoadRankings(all_rankings, MAX_TOTAL_RANKINGS);
 
@@ -78,6 +82,7 @@ int SaveRanking(const char *level_name, GAMESTATE *state) {
   return 0;
 }
 
+// Load all ranking entries from file
 int LoadRankings(RANKING_ENTRY *rankings, int max_entries) {
   FILE *file = fopen(RANKINGS_FILE, "r");
   if (!file) {
@@ -109,6 +114,7 @@ int LoadRankings(RANKING_ENTRY *rankings, int max_entries) {
   return count;
 }
 
+// Get rankings for a specific level (sorted by score, descending)
 int GetLevelRankings(const char *level_name, RANKING_ENTRY *rankings,
                      int max_entries) {
   RANKING_ENTRY all_rankings[MAX_TOTAL_RANKINGS];

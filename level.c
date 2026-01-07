@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Generic function to add an entity to a dynamically allocated array
 void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
                      const void *new_entry) {
   void *resized_array = realloc(array, (*num_entries + 1) * entry_size);
@@ -20,6 +21,7 @@ void *AddLevelEntity(void *array, size_t entry_size, int *num_entries,
   return resized_array;
 }
 
+// Free all dynamically allocated memory in a level structure
 void FreeLevel(LEVEL *level) {
   if (level != NULL) {
     free(level->totems);
@@ -32,6 +34,7 @@ void FreeLevel(LEVEL *level) {
   }
 }
 
+// Parse enemy data from level file line and create ENEMY structure
 ENEMY LoadEnemy(const char *line, int enemy_id) {
   ENEMY enemy;
   char type_str[32] = "";
@@ -47,7 +50,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
          &enemy.pos1.y, &enemy.pos2.x, &enemy.pos2.y, &start_pos.x,
          &start_pos.y, &enemy.speed, &enemy.chase_radius);
 
-  // Validate and clamp speed
+  // Validate and clamp speed to valid range (1-5)
   int verified_speed = MIN(MAX(enemy.speed, 1), 5);
   if (verified_speed != enemy.speed) {
     fprintf(stderr, "Warning: Enemies[%d] speed clamped to %d.\n", enemy_id,
@@ -55,14 +58,14 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
     enemy.speed = verified_speed;
   }
 
-  // Set starting position
+  // Set starting position (use pos1 if start_pos is invalid)
   if (CheckWithinBounds(enemy.pos1, enemy.pos2, start_pos)) {
     enemy.current_pos = start_pos;
   } else {
     enemy.current_pos = enemy.pos1;
   }
 
-  // Determine enemy type
+  // Determine enemy type from string
   if (strcmp(type_str, "RANDOM") == 0) {
     enemy.type = ENEMY_PATROL_RANDOM;
   } else if (strcmp(type_str, "CHASER") == 0) {
@@ -90,6 +93,7 @@ ENEMY LoadEnemy(const char *line, int enemy_id) {
   return enemy;
 }
 
+// Parse aggressive obstacle data (spikes, firejets) from level file line
 AGGRESSIVE_OBSTACLE LoadAggressiveObstacle(const char *line, int obs_id) {
   AGGRESSIVE_OBSTACLE obs;
   char type_str[32] = "";
@@ -105,8 +109,9 @@ AGGRESSIVE_OBSTACLE LoadAggressiveObstacle(const char *line, int obs_id) {
   sscanf(line, "%31s (%d,%d) %15s %f %d", type_str, &obs.pos.x, &obs.pos.y,
          dir_str, &interval, &obs.fire_length);
 
-  obs.active_interval = (int)(interval * FRAMES_PER_SECOND);
+  obs.active_interval = (int)(interval * FRAMES_PER_SECOND); // Convert seconds to frames
 
+  // Parse direction string
   if (strcmp(dir_str, "UP") == 0) {
     obs.direction = OBSTACLE_UP;
   } else if (strcmp(dir_str, "DOWN") == 0) {
@@ -130,6 +135,7 @@ AGGRESSIVE_OBSTACLE LoadAggressiveObstacle(const char *line, int obs_id) {
   return obs;
 }
 
+// Parse power-up data from level file line
 POWERUP LoadPowerup(const char *line, int powerup_id) {
   POWERUP powerup;
   char type_str[32] = "";
@@ -153,6 +159,7 @@ POWERUP LoadPowerup(const char *line, int powerup_id) {
   return powerup;
 }
 
+// Parse passive obstacle data (teleport pads, sticky floor, tall grass) from level file line
 PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
   PASSIVE_OBSTACLE obs;
   char type_str[32] = "";
@@ -178,6 +185,7 @@ PASSIVE_OBSTACLE LoadPassiveObstacle(const char *line, int obs_id) {
   return obs;
 }
 
+// Initialize all level entity arrays to NULL with zero counts
 static void InitLevelArrays(LEVEL *level) {
   level->totems = NULL;
   level->obstacles = NULL;
@@ -194,6 +202,7 @@ static void InitLevelArrays(LEVEL *level) {
   level->total_totems_score = 0;
 }
 
+// Parse a single CONFIG section line and update level parameters
 static int ParseConfigLine(const char *line, LEVEL *level) {
   sscanf(line, "TIME=%d", &level->time_limit);
   sscanf(line, "LIFES=%d", &level->lifes);
@@ -204,6 +213,7 @@ static int ParseConfigLine(const char *line, LEVEL *level) {
   return TRUE;
 }
 
+// Add a totem entity to level from parsed line
 static int AddTotemEntity(const char *line, LEVEL *level) {
   TOTEM new_totem;
   new_totem.is_collected = FALSE;
@@ -217,6 +227,7 @@ static int AddTotemEntity(const char *line, LEVEL *level) {
   return (level->totems != NULL);
 }
 
+// Add an obstacle entity to level from parsed line
 static int AddObstacleEntity(const char *line, LEVEL *level) {
   OBSTACLE new_obstacle;
   sscanf(line, "(%d,%d) (%d,%d)", &new_obstacle.pos1.x, &new_obstacle.pos1.y,
@@ -226,6 +237,7 @@ static int AddObstacleEntity(const char *line, LEVEL *level) {
   return (level->obstacles != NULL);
 }
 
+// Add an enemy entity to level from parsed line
 static int AddEnemyEntity(const char *line, LEVEL *level) {
   ENEMY enemy = LoadEnemy(line, level->num_enemies);
   level->enemies = (ENEMY *)AddLevelEntity(level->enemies, sizeof(ENEMY),
@@ -233,6 +245,7 @@ static int AddEnemyEntity(const char *line, LEVEL *level) {
   return (level->enemies != NULL);
 }
 
+// Add an aggressive obstacle entity to level from parsed line
 static int AddAggObstEntity(const char *line, LEVEL *level) {
   AGGRESSIVE_OBSTACLE obs =
       LoadAggressiveObstacle(line, level->num_aggressive_obstacles);
@@ -242,6 +255,7 @@ static int AddAggObstEntity(const char *line, LEVEL *level) {
   return (level->aggressive_obstacles != NULL);
 }
 
+// Add a power-up entity to level from parsed line
 static int AddPowerupEntity(const char *line, LEVEL *level) {
   POWERUP p = LoadPowerup(line, level->num_powerups);
   level->powerups = (POWERUP *)AddLevelEntity(level->powerups, sizeof(POWERUP),
@@ -249,6 +263,7 @@ static int AddPowerupEntity(const char *line, LEVEL *level) {
   return (level->powerups != NULL);
 }
 
+// Add a passive obstacle entity to level from parsed line
 static int AddPassiveObstEntity(const char *line, LEVEL *level) {
   PASSIVE_OBSTACLE obs =
       LoadPassiveObstacle(line, level->num_passive_obstacles);
@@ -258,6 +273,7 @@ static int AddPassiveObstEntity(const char *line, LEVEL *level) {
   return (level->passive_obstacles != NULL);
 }
 
+// Route level file line to appropriate entity parser based on current section
 static int ProcessLevelSection(const char *line, const char *section,
                                LEVEL *level) {
   if (strcmp(section, "[CONFIG]") == 0)
@@ -277,6 +293,7 @@ static int ProcessLevelSection(const char *line, const char *section,
   return TRUE;
 }
 
+// Load and parse a level file - returns NULL on failure
 LEVEL *LoadLevel(const char *filename) {
   LEVEL *level = (LEVEL *)malloc(sizeof(LEVEL));
   if (!level)

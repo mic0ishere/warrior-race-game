@@ -18,18 +18,19 @@ static const char *menu_items[MENU_ITEMS] = {"New Game", "Read Instructions",
 static const char *instructions =
     "Use [W/S] to navigate, [space] to select, [Q] to exit";
 
-// Comparison function for qsort
+// Comparison function for qsort to sort level filenames alphabetically
 static int compare_strings(const void *a, const void *b) {
   return strcmp((const char *)a, (const char *)b);
 }
 
+// Display main menu and return user's choice (0-3 or MENU_EXIT)
 int ShowMainMenu(WIN *W) {
   WINDOW *win = W->window;
   int highlight = 0;
   int choice = -1;
   int c;
 
-  // Wait for user input
+  // Wait for user input (blocking mode)
   nodelay(win, FALSE);
 
   while (1) {
@@ -86,6 +87,7 @@ int ShowMainMenu(WIN *W) {
   return choice;
 }
 
+// Scan levels directory and return sorted list of level filenames
 int ScanLevels(char levels[][256]) {
   DIR *dir;
   struct dirent *entry;
@@ -105,10 +107,11 @@ int ScanLevels(char levels[][256]) {
   }
 
   closedir(dir);
-  qsort(levels, count, 256, compare_strings);
+  qsort(levels, count, 256, compare_strings); // Sort alphabetically
   return count;
 }
 
+// Extract level name from filename (remove path and .txt extension)
 char *GetLevelName(const char *filename) {
   const char *basename = strrchr(filename, '/'); // Find last '/'
   if (basename) {
@@ -132,6 +135,7 @@ char *GetLevelName(const char *filename) {
   return level_name;
 }
 
+// Render scrollable level list with highlight and "more levels" indicator
 static void RenderLevelList(WIN *W, char levels[][256], int num_levels,
                             int highlight, int scroll_offset) {
   int start_y = 5;
@@ -153,6 +157,7 @@ static void RenderLevelList(WIN *W, char levels[][256], int num_levels,
     }
   }
 
+  // Show "X more levels" indicator when scrolled
   if (scroll_offset + visible_items < num_levels - 1) {
     mvwhline(W->window, start_y + visible_items, 1, ' ', W->cols - 2);
     mvwprintw(W->window, start_y + visible_items, column_start,
@@ -161,10 +166,12 @@ static void RenderLevelList(WIN *W, char levels[][256], int num_levels,
   }
 }
 
+// Display level selector menu and return loaded level (or NULL if cancelled)
 LEVEL *ShowLevelSelector(WIN *W) {
   char levels[MAX_LEVELS][256];
   int num_levels = ScanLevels(levels);
 
+  // Auto-select if only one level exists
   if (num_levels == 1) {
     return LoadLevel(levels[0]);
   }
@@ -184,6 +191,7 @@ LEVEL *ShowLevelSelector(WIN *W) {
     int scroll_offset =
         (highlight >= visible_items) ? (highlight - visible_items + 1) : 0;
 
+    // Render level list with scrolling support
     RenderLevelList(W, levels, num_levels, highlight, scroll_offset);
 
     mvwprintw(win, W->rows - 2, (W->cols - strlen(instructions)) / 2, "%s",
@@ -215,6 +223,7 @@ LEVEL *ShowLevelSelector(WIN *W) {
   return NULL;
 }
 
+// Display rankings for a level (top 10 scores)
 static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[],
                             int num_rankings) {
   if (num_rankings == 0) {
@@ -234,6 +243,7 @@ static void DisplayRankings(WIN *W, RANKING_ENTRY rankings[],
   }
 }
 
+// Render ranking screen header with current level name
 static void RenderRankingHeader(WIN *W, int current_level, char levels[][256]) {
   const char *title = "=== GAME RANKING ===";
   mvwprintw(W->window, 2, (W->cols - strlen(title)) / 2, "%s", title);
@@ -245,6 +255,7 @@ static void RenderRankingHeader(WIN *W, int current_level, char levels[][256]) {
             level_title);
 }
 
+// Show ranking viewer with ability to switch between levels
 void ShowRanking(WIN *W) {
   WINDOW *win = W->window;
   char levels[MAX_LEVELS][256];
@@ -295,6 +306,7 @@ void ShowRanking(WIN *W) {
   }
 }
 
+// Get color for entity symbol used in instructions display
 static int GetEntityColor(const char symbol) {
   switch (symbol) {
   case '@':
@@ -326,6 +338,7 @@ static int GetEntityColor(const char symbol) {
   return -1; // No color
 }
 
+// Render a line of text with colored entity symbols (e.g., [T], [E])
 static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
                                  int max_width) {
   int current_x = x;
@@ -344,6 +357,7 @@ static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
       }
 
       if (color > 0) {
+        // Render colored entity symbol
         wattron(win, COLOR_PAIR(color));
         mvwaddch(win, y, current_x, *"[");
         mvwaddch(win, y, current_x + 1, current[1]);
@@ -365,6 +379,7 @@ static void RenderLineWithColors(WINDOW *win, int y, int x, const char *line,
   }
 }
 
+// Display scrollable instructions screen with colored entity symbols
 void ShowInstructions(WIN *W) {
   WINDOW *win = W->window;
   nodelay(win, FALSE);
