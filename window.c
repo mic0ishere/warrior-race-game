@@ -7,6 +7,7 @@
 
 #define DEBUG
 
+// Initialize ncurses screen with color pairs and input settings
 WINDOW *InitScreen(void) {
   WINDOW *win = initscr();
 
@@ -15,6 +16,7 @@ WINDOW *InitScreen(void) {
     exit(EXIT_FAILURE);
   }
 
+  // Initialize color pairs for all game entities and UI elements
   start_color();
   init_pair(DEFAULT_COLOR, COLOR_WHITE, COLOR_BLACK);
   init_pair(PLAY_COLOR, COLOR_BLACK, COLOR_WHITE);
@@ -39,12 +41,13 @@ WINDOW *InitScreen(void) {
   init_pair(STICKY_FLOOR_COLOR, COLOR_BLACK, COLOR_YELLOW);
   init_pair(TALL_GRASS_COLOR, COLOR_BLACK, COLOR_GREEN);
 
-  noecho();
-  curs_set(0);
+  noecho();       // Don't echo user input
+  curs_set(0);    // Hide cursor
 
   return win;
 }
 
+// Clear window contents and optionally redraw border
 void CleanWin(WIN *W, int bo) {
   int i, j;
 
@@ -60,6 +63,7 @@ void CleanWin(WIN *W, int bo) {
   wrefresh(W->window);
 }
 
+// Create and initialize a new window with specified dimensions and properties
 WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
              int bo, int is_debug) {
 
@@ -83,6 +87,7 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
   }
 
 #ifndef DEBUG
+  // Skip initialization for debug window if DEBUG not defined
   if (is_debug) {
     return W;
   }
@@ -91,12 +96,13 @@ WIN *InitWin(WINDOW *parent, int rows, int cols, int y, int x, int color,
 #endif
 
   CleanWin(W, bo);
-  nodelay(W->window, TRUE);
+  nodelay(W->window, TRUE); // Non-blocking input
   wrefresh(W->window);
 
   return W;
 }
 
+// Initialize all three game windows (play, status, debug)
 int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
   windows->playwin =
       InitWin(screenwin, ROWS, COLS, OFFY, OFFX, PLAY_COLOR, BORDER, FALSE);
@@ -125,6 +131,7 @@ int InitAllWindows(WINDOW *screenwin, WINDOWS *windows) {
   return 0;
 }
 
+// Cleanup and free all game windows
 void CleanupWindows(WINDOWS *windows) {
   if (windows->playwin) {
     delwin(windows->playwin->window);
@@ -140,6 +147,7 @@ void CleanupWindows(WINDOWS *windows) {
   }
 }
 
+// Cleanup and free a single window
 void CleanupWin(WIN *W) {
   if (W) {
     wclear(W->window);
@@ -149,6 +157,7 @@ void CleanupWin(WIN *W) {
   }
 }
 
+// Display end game message with win/loss color scheme
 void EndGame(WIN *W, char *msg, int is_success) {
   W->color = is_success ? END_WIN_COLOR : END_LOSE_COLOR;
   CleanWin(W, BORDER);
@@ -158,6 +167,7 @@ void EndGame(WIN *W, char *msg, int is_success) {
   wrefresh(W->window);
 }
 
+// Display active power-ups in status window with remaining time
 void ShowPowerups(WIN *W, GAMESTATE *state, int row, int col) {
   char powerup_status[COLS];
   int status_pos = 0;
@@ -195,6 +205,7 @@ void ShowPowerups(WIN *W, GAMESTATE *state, int row, int col) {
   }
 }
 
+// Display status bar with score, time, lives, position, and controls
 void ShowStatus(WIN *W, GAMESTATE *state) {
   CleanWin(W, BORDER);
 
@@ -215,6 +226,7 @@ void ShowStatus(WIN *W, GAMESTATE *state) {
   wrefresh(W->window);
 }
 
+// Display debug messages in debug window (only if DEBUG defined)
 void ShowDebug(WIN *W, const char *msg) {
 #ifdef DEBUG
   wattron(W->window, COLOR_PAIR(W->color));
@@ -233,6 +245,7 @@ void ShowDebug(WIN *W, const char *msg) {
 #endif
 }
 
+// Display life loss message with cause-specific text
 void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
   char *msg = "You lost a life!";
   char *reason_msg = NULL;
@@ -266,6 +279,7 @@ void ShowLifeLoss(WIN *W, LIFE_LOST_STATUS life_loss) {
   wrefresh(W->window);
 }
 
+// Display alert message (used for pause notification)
 void ShowAlert(WIN *W, const char *msg) {
   wattron(W->window, COLOR_PAIR(END_LOSE_COLOR));
   mvwprintw(W->window, W->rows / 2 + 2, (W->cols - strlen(msg)) / 2, "%s", msg);
@@ -273,15 +287,17 @@ void ShowAlert(WIN *W, const char *msg) {
   wrefresh(W->window);
 }
 
+// Convert level coordinates to screen coordinates (centered on player with camera)
 void LevelToScreenCoords(WIN *W, int level_x, int level_y, GAMESTATE *state,
                          int *screen_x, int *screen_y) {
   int center_x = W->cols / 2;
   int center_y = W->rows / 2;
 
   *screen_x = center_x + (level_x - state->player_pos.x);
-  *screen_y = center_y + (state->player_pos.y - level_y);
+  *screen_y = center_y + (state->player_pos.y - level_y); // Y inverted for ncurses
 }
 
+// Safely print entity at level coordinates with bounds checking and vision restriction
 void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
                      GAMESTATE *state, int color_pair) {
   if (level_x < -1 || level_x > state->level->width || level_y < -1 ||
@@ -289,13 +305,13 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
     return;
   }
 
-  // Apply tall grass vision restriction with gradual transition
+  // Apply tall grass vision restriction with gradual transition effect
   if (state->grass_vision_transition > 0) {
     int dx = abs(level_x - state->player_pos.x);
     int dy = abs(level_y - state->player_pos.y);
 
     // Calculate effective vision range based on transition progress
-    // vision_range increases from 2 to full as transition goes from 10 to 0
+    // Vision range increases from 2 to full as transition goes from 10 to 0
     float transition_factor =
         (float)state->grass_vision_transition / TALL_GRASS_TRANSITION_FRAMES;
     int max_range = MAX(state->level->width, state->level->height);
@@ -311,6 +327,7 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
   POSITION screen_pos;
   LevelToScreenCoords(W, level_x, level_y, state, &screen_pos.x, &screen_pos.y);
 
+  // Only render if within window bounds
   if (screen_pos.x >= 0 && screen_pos.x < W->cols && screen_pos.y >= 0 &&
       screen_pos.y < W->rows) {
     wattron(W->window, COLOR_PAIR(color_pair));
@@ -318,6 +335,7 @@ void SafePrintEntity(WIN *W, int level_x, int level_y, const char *symbol,
   }
 }
 
+// Render passive obstacles (teleport pads, sticky floor, tall grass)
 static void RenderPassiveObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_passive_obstacles; i++) {
     PASSIVE_OBSTACLE *obs = &state->level->passive_obstacles[i];
@@ -349,6 +367,7 @@ static void RenderPassiveObstacles(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Render power-ups that haven't been collected yet
 static void RenderPowerups(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_powerups; i++) {
     POWERUP *powerup = &state->level->powerups[i];
@@ -383,6 +402,7 @@ static void RenderPowerups(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Get color for enemy based on type and state (flashing for teleporter, angry/sleeping for chaser)
 static int GetEnemyColor(ENEMY *enemy, GAMESTATE *state) {
   int enemy_color = ENEMY_COLOR;
 
@@ -391,16 +411,19 @@ static int GetEnemyColor(ENEMY *enemy, GAMESTATE *state) {
     int frames_until =
         (TELEPORTER_INTERVAL_FRAMES / enemy->speed) - frames_since;
 
+    // Flash warning color before teleporting
     if (frames_until >= 0 && frames_until <= TELEPORTER_WARNING_FRAMES) {
       enemy_color = frames_until % 5 >= 2 ? TELEPORTER_WARNING_COLOR : ENEMY_COLOR;
     }
   } else if (enemy->type == ENEMY_CHASER) {
+    // Show different color when chasing vs sleeping
     enemy_color = enemy->is_chasing ? CHASER_ANGRY_COLOR : CHASER_SLEEPING_COLOR;
   }
 
   return enemy_color;
 }
 
+// Render all enemies with appropriate colors
 static void RenderEnemies(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_enemies; i++) {
     ENEMY *enemy = &state->level->enemies[i];
@@ -410,6 +433,7 @@ static void RenderEnemies(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Render static rectangular obstacles
 static void RenderStaticObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_obstacles; i++) {
     OBSTACLE *obs = &state->level->obstacles[i];
@@ -421,6 +445,7 @@ static void RenderStaticObstacles(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Render level boundaries (walls around the playable area)
 static void RenderBoundaries(WIN *W, GAMESTATE *state) {
   for (int x = 0; x < state->level->width; x++) {
     SafePrintEntity(W, x, -1, "-", state, OBSTACLE_COLOR);
@@ -433,18 +458,22 @@ static void RenderBoundaries(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Render aggressive obstacles (spikes when active, firejets with fire paths)
 static void RenderAggressiveObstacles(WIN *W, GAMESTATE *state) {
   for (int i = 0; i < state->level->num_aggressive_obstacles; i++) {
     AGGRESSIVE_OBSTACLE *obs = &state->level->aggressive_obstacles[i];
 
     if (obs->type == AGGRESSIVE_SPIKE) {
       const char *spike_symbols[] = {"^", "v", "<", ">"};
+      // Only show spikes when active
       if (obs->is_active) {
         SafePrintEntity(W, obs->pos.x, obs->pos.y,
                         spike_symbols[obs->direction % 4], state, SPIKE_COLOR);
       }
     } else if (obs->type == AGGRESSIVE_FIREJET) {
+      // Always show firejet source
       SafePrintEntity(W, obs->pos.x, obs->pos.y, "F", state, FIREJET_COLOR);
+      // Show fire path when active
       if (obs->is_active) {
         for (int j = 1; j <= obs->fire_length; j++) {
           POSITION fire_pos = obs->pos;
@@ -457,6 +486,7 @@ static void RenderAggressiveObstacles(WIN *W, GAMESTATE *state) {
   }
 }
 
+// Main rendering function - draws all game entities in proper order
 void RenderPlayArea(WIN *W, GAMESTATE *state) {
   CleanWin(W, 0);
 
