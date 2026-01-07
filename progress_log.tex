@@ -1,0 +1,217 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{parskip}
+
+% Page geometry
+\geometry{
+    a4paper,
+    left=2.5cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm
+}
+
+% Title
+\title{Warrior Race Game\\Development Progress Log}
+\author{Development Team}
+\date{November -- December 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Phase 1}
+
+\subsection{25-11-2025 - ncurses setup, basic structure}
+\begin{itemize}
+    \item Created basic game structure with ncurses windows for gameplay, status, and debugging.
+\end{itemize}
+
+\subsection{27-11-2025 - core gameplay mechanics}
+\begin{itemize}
+    \item Proper game ending with final status display
+    \item Implemented player movement in a game area and input handling.
+    \item Reading level data from a file.
+    \item Added collision detection and basic game mechanics (totem collection, enemy movement).
+    \item Scoring system based on totems collected.
+\end{itemize}
+
+\section{Phase 2}
+
+\subsection{03-12-2025 - code optimization, modular refactoring}
+\begin{itemize}
+    \item Used Github Copilot (Agent mode) to help with security vulnerabilities, memory leaks and code optimization.
+    \begin{itemize}
+        \item It required instructions as to where is the main file is located, what is the project outline and at which stage the project is.
+        \item Reverted the decision to suppress unused parameter warnings, and instead chose to refactor the code to eliminate unused parameters.
+    \end{itemize}
+    
+    \item Collaborated with it using a pull request workflow.
+    \begin{itemize}
+        \item Manually asked to refactor few functions and type definitions in order to improve readability.
+        \item Asked it to refactor the game into modular architecture, which it did successfully.
+    \end{itemize}
+    
+    \item Improved code quality, readability, and maintainability.
+    
+    \item Learned how to properly work with pull requests on Github.
+\end{itemize}
+
+\subsection{08-12-2025 - feature planning, roadmap creation}
+\begin{itemize}
+    \item Asked ChatGPT on ideas to expand the game.
+    \begin{itemize}
+        \item It provided multiple ideas, some realistic gameplay changes (player power-ups, more enemy types, dynamic obstacles), possible technical improvements (ranking system, entity animations)
+        \item Others were more complex or not possible and would require significant time to implement (procedural generation, inventory, audio effects)
+        \item After few prompts for refining, a roadmap of features to implement was created
+    \end{itemize}
+\end{itemize}
+
+\subsection{10-12-2025 - new enemies, aggressive obstacles, pause}
+\begin{itemize}
+    \item Using the roadmap created with ChatGPT, started implementing new gameplay features.
+    
+    \item Implemented new enemy types (random walkers, chasers, teleporters) and aggressive obstacles (spikes and fire jets) by using Github Copilot agent (Claude Sonnet 4.5)
+    \begin{itemize}
+        \item It excelled at generating the enemy movement logic based on the descriptions provided - the game was working flawlessly after the first implementation.
+        \item Some of the code required minor adjustments for quality purposes, mostly related to legacy config parameters and integration with existing code
+        \item I have manually refactored some of the code to improve readability and maintainability
+    \end{itemize}
+    
+    \item Added a proper life loss handling with an alert message.
+    \begin{itemize}
+        \item Copilot inline suggestions helped with implementation, providing nice messages
+        \item Suggested delay mechanism was too short and needed to be adjusted manually
+    \end{itemize}
+    
+    \item Implemented pause functionality in the game, without AI assistance.
+    
+    \item \textbf{IDEA:} After heavy AI-assisted development, a proper code review would be beneficial to ensure code quality and maintainability. I would suggest asking Copilot to identify potential issues before a thorough manual review.
+\end{itemize}
+
+\subsection{11-12-2025 - menu system, level selector}
+\begin{itemize}
+    \item Implemented menu system with new game, view ranking, and exit options.
+    \begin{itemize}
+        \item Used Copilot (Claude Sonnet 4.5) to help with game menu addition.
+        \item There were some issues with the initial implementation, so I had to rework parts of it manually.
+        \item The implementation of new window management wasn't in line with the existing code style and structure.
+        \item Manually updated the menu layout and structure for better user experience.
+        \item Refined the code for better readability and maintainability.
+    \end{itemize}
+    
+    \item Asked ChatGPT for ideas on function naming - it suggested more descriptive names which I adopted for better code readability.
+    
+    \item Created level selector to choose from multiple levels at the start of the game.
+    \begin{itemize}
+        \item Copilot assisted with scrolling logic and level loading.
+        \item The ``design'' it suggested wasn't looking good, so I reimplemented the layout manually for better aesthetics.
+        \item Again, I refactored some of the code for clarity.
+    \end{itemize}
+\end{itemize}
+
+\subsection{12-12-2025 - enemy enhancements, bug fixes}
+\begin{itemize}
+    \item Enhanced enemy behavior:
+    \begin{itemize}
+        \item For teleporters, added a flashing indicator before teleporting.
+        \item For chasers, implemented a sleeping state, where they display in a different color when the player is outside of their vision.
+        \item Copilot provided good initial implementations, but some adjustments were needed for timing and visual effects.
+        \item While testing, I have identified and fixed existing bugs in the entity collission and movement logic (for teleporters the speed variable had no effect, player could walk into the source of firejet obstacle and teleporters could teleport onto player's starting position).
+    \end{itemize}
+\end{itemize}
+
+\subsection{14-12-2025 - level design}
+\begin{itemize}
+    \item Add a ``proper'' level, with a designed layout and multiple enemy types.
+    \begin{itemize}
+        \item Done it manually, as I wanted to have full control over the design and gameplay experience.
+    \end{itemize}
+\end{itemize}
+
+\subsection{15-12-2025 - ranking system}
+\begin{itemize}
+    \item Implemented a ranking system to store high scores in a file.
+    \begin{itemize}
+        \item Manually created a formula to calculate final scores based on totems collected, time taken, and lives remaining.
+        \item Used Copilot Agent (Claude Sonnet 4.5) to help with file handling and displaying rankings.
+        \item After it completed initial implementation, I have provided additional instructions to make code quality and style in line with the rest of the project.
+        \item AI did a good job, in the meantime I have updated screen timings and simplified ranking file saving.
+        \item While testing, thought that saving rankings in a binary file is less user-friendly, so I have asked Copilot to refactor the code to use a text file instead, which it did successfully.
+    \end{itemize}
+    
+    \item \textbf{IDEA:} Create more detailed AI prompts with step-by-step instruction to minimize the need for manual adjustments. Use other AI tools that specialize in text generation to help craft better prompts for coding AIs like Copilot.
+    \begin{enumerate}
+        \item Initial task description $\leftrightarrow$ ChatGPT for prompt refinement
+        \item Copilot Agent for code generation $\leftrightarrow$ Iterative improvements
+        \item Manual review and refactoring
+    \end{enumerate}
+\end{itemize}
+
+\subsection{17-12-2025 - documentation update}
+\begin{itemize}
+    \item Updated \texttt{copilot\_instructions.md} (file which is used by Copilot Agent to understand the project) to reflect new development requirements.
+    \begin{itemize}
+        \item Revised the project description, technical stack, and current development phase.
+        \item Added instructions about code style preferences, quality and maintainability expectations.
+        \item This will hopefully help Copilot provide more relevant suggestions in future development sessions.
+    \end{itemize}
+\end{itemize}
+
+\subsection{20-12-2025 - power-ups, passive obstacles}
+\begin{itemize}
+    \item Added power-ups: shield, double points, extra life, and time freeze.
+    \begin{itemize}
+        \item Firstly, asked ChatGPT for ideas on power-ups and prompt refinement for Copilot Agent (Claude Sonnet 4.5).
+        \item While initial implementation Copilot suggested a good structure for power-up management, there were some bugs with power-up user interface display and their effects.
+        \item After prompting Copilot to fix the issues, it has provided working solutions, although they still lacked some critical user experience elements.
+        \item I have once again asked Copilot to address these problems, which it did successfully.
+        \item Finally, after testing and playing the game, I have manually adjusted timings to ensure balanced gameplay.
+        \item Moreover, while reviewing the code, I extracted LoadPowerup out of the LoadLevel function to shorten it.
+    \end{itemize}
+    
+    \item Added passive obstacles: teleport pads, sticky floor, and tall grass.
+    \begin{itemize}
+        \item Once again, I have first collaborated with ChatGPT to create a prompt for Copilot Agent (Claude Sonnet 4.5).
+        \item The initial code lacked some features, but with a prompt with list of required changes, Copilot was able to deliver working implementations.
+        \item As usual, I conducted a review of the generated code and refactored some parts that were not in line with my code style preferences.
+    \end{itemize}
+\end{itemize}
+
+\subsection{21-12-2025 - level updates, instructions screen, code review}
+\begin{itemize}
+    \item Improved legacy levels to include new enemies, obstacles, and power-ups.
+    \begin{itemize}
+        \item Copilot Agent (GPT-5.1-Codex-Max) assisted with level file updates and simulating gameplay.
+        \item It helped to update old level files to include new entities and obstacles.
+        \item While the generated levels were functional, they weren't very engaging.
+        \item \textbf{IDEA:} This is an area where I would need to provide significalny more detailed gameplay mechanics and level design instructions in future, to get better results from AI. However, as I'm not a good level designer myself, creation of such prompts is out of my current capabilities.
+    \end{itemize}
+    
+    \item Added an instructions screen in the menu to explain game controls and mechanics.
+    \begin{itemize}
+        \item Here, I have firstly used Google Gemini to generate the prompt for Copilot Agent (Claude Sonnet 4.5).
+        \item Gemini's output was more structured and detailed, which helped Copilot to create a better implementation.
+        \item Copilot's implementation was extremely good, having only small issues in regards to correct entity character.
+        \item I have asked Copilot to fix these problems and extract the instructions text into a separate file for easier future modifications, which it did successfully.
+        \item The code generated was successful, but I wasn't happy with the solution used to read the instructions file, so I decided to ask Copilot to refactor it into a separate C header file, which it did well.
+        \item Moreover, I asked Copilot to extract and improve the text rendering function for instructions screen, which it did successfully.
+        \item Tired of prompting Copilot for minor fixes, I have manually updated line rendering function to make it more versatile and reusable.
+    \end{itemize}
+    
+    \item Performed a thorough code review of the entire project.
+    \begin{itemize}
+        \item Asked Copilot Agent (Claude Sonnet 4.5) to identify bugs, quality issues and general areas for improvement.
+        \item It provided a comprehensive list of suggestions, including refactoring opportunities, performance optimizations, and code style improvements.
+        \item I have manually reviewed these suggestions and implemented the most relevant ones with the help of Copilot Agent and Copilot Next Edits.
+        \item Additionally, while modifying the code, I have fixed some minor bugs and inconsistencies that I found during testing.
+    \end{itemize}
+\end{itemize}
+
+\end{document}
