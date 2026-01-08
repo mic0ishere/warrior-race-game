@@ -19,8 +19,8 @@ START_Y=2
 (32,22) 30
 
 [OBSTACLES]
-# Complex maze structure with pathways
-(0,6) (13,7)
+# Complex maze structure with pathways and gaps
+(0,6) (11,7)
 (19,6) (34,7)
 (5,0) (6,5)
 (12,0) (13,5)
