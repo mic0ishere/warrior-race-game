@@ -2,6 +2,8 @@
 
 [**project description**](project_description.pdf)
 
+[**level design guide**](LEVEL_DESIGN_GUIDE.md) - comprehensive guide for creating new levels
+
 ### useful resources
 
 - [cpp reference (with c stdlib)](https://cplusplus.com/reference/)
