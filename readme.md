@@ -1,6 +1,4 @@
-[**progress log**](progress_log.md)
-
-[**project description**](project_description.pdf)
+[**project description (pl)**](docs/project_description.pdf)
 
 ### useful resources
 
