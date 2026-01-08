@@ -665,7 +665,75 @@ Create an ``AI Documentation Assistant'' workflow:
 
 \section{Experiment: Designing levels with AI}
 
-% TODO: add conclusions regarding the AI experiment
+During the development of Warrior Race Game, an experimental attempt was made to leverage AI tools for level design---a creative domain that proved particularly challenging for current AI capabilities. This experiment revealed fundamental limitations in AI's capacity for abstract spatial reasoning and gameplay balance intuition.
+
+\subsection{Challenges Encountered}
+
+The primary obstacle in AI-assisted level design was the technology's limited abstract capacity. While AI tools excel at generating syntactically correct level files and can populate them with valid entity placements, they fundamentally lack the spatial-temporal reasoning required for engaging game design. Level design requires understanding how a player will navigate space over time, anticipating movement patterns, and creating rhythms of challenge and relief. These higher-order cognitive tasks proved beyond current AI capabilities.
+
+Several specific deficiencies emerged during experimentation:
+
+\subsubsection*{Lack of Gameplay Flow Understanding}
+
+AI-generated levels were mechanically valid but strategically uninteresting. Entities were placed without consideration for:
+\begin{itemize}
+    \item Progressive difficulty curves that maintain player engagement
+    \item Spatial relationships between obstacles that create meaningful choices
+    \item Timing patterns that reward skilled play versus random success
+    \item Visual composition that guides player attention and movement
+\end{itemize}
+
+The generated levels felt arbitrary rather than intentional. Where a human designer might create a ``gauntlet'' section followed by a ``breathing room'' safe zone, AI would distribute challenges uniformly, creating monotonous gameplay.
+
+\subsubsection*{Absence of Creative Vision}
+
+Human level design involves artistic choices that transcend mechanical correctness. Designers create memorable moments, signature challenges, and thematic coherence. AI tools, constrained to pattern matching and statistical generation, produced levels that were functionally correct but utterly forgettable. They lacked the narrative arc, aesthetic unity, and player psychology considerations that distinguish great levels from merely functional ones.
+
+\subsubsection*{Inability to Balance Complexity}
+
+A well-designed level balances multiple competing factors: difficulty appropriate to player skill progression, variety to maintain interest, fairness to avoid frustration, and clarity to prevent confusion. AI tools struggled with this multidimensional optimization problem. Prompts addressing one dimension (e.g., ``increase difficulty'') would compromise others (e.g., fairness), requiring iterative refinement that proved inefficient compared to manual design.
+
+\subsection{Prompting Techniques Attempted}
+
+I explored various prompting strategies to overcome these limitations:
+
+\begin{enumerate}
+    \item \textbf{High-level descriptions:} Requesting levels with specific themes (``maze-like,'' ``gauntlet,'' ``puzzle'') produced generic interpretations lacking nuance.
+    
+    \item \textbf{Detailed specifications:} Providing explicit entity counts, density parameters, and spacing rules resulted in mechanically correct but creatively bankrupt designs.
+    
+    \item \textbf{Example-based prompts:} Supplying hand-crafted levels as references yielded slight improvements but mostly produced superficial variations.
+    
+    \item \textbf{Iterative refinement:} Multiple prompt cycles could incrementally improve individual aspects but never converged on satisfactory overall quality.
+    
+    \item \textbf{Multi-tool orchestration:} Using ChatGPT for conceptual design and Copilot for implementation provided marginal benefits but couldn't bridge the fundamental creative gap.
+\end{enumerate}
+
+\subsection{Time Constraints and Practicality}
+
+Within the project's timeframes, achieving satisfactory AI-generated levels proved impractical. The iterative refinement process---identifying deficiencies, crafting corrective prompts, evaluating results---consumed more time than manual level design while producing inferior results. A level requiring 15-20 minutes of manual design might demand 45-60 minutes of AI-assisted iteration to achieve 70-80\% of the quality.
+
+This economic reality suggests that for creative, subjective design tasks requiring spatial reasoning and player psychology intuition, current AI tools offer limited value. They may provide starting points for human refinement but cannot autonomously produce production-quality creative content in this domain.
+
+\subsection{Implications for AI-Assisted Development}
+
+This experiment highlights an important boundary in AI capabilities. While AI excels at:
+\begin{itemize}
+    \item Code generation following well-defined patterns
+    \item Mechanical transformations and refactoring
+    \item Systematic error detection and correction
+    \item Documentation and boilerplate generation
+\end{itemize}
+
+It struggles with tasks requiring:
+\begin{itemize}
+    \item Abstract spatial-temporal reasoning
+    \item Subjective aesthetic judgment
+    \item Multi-dimensional creative optimization
+    \item Implicit domain knowledge (game feel, player psychology)
+\end{itemize}
+
+Understanding these boundaries allows developers to allocate AI assistance strategically, focusing it on domains where it provides genuine value while recognizing areas where human creativity and judgment remain irreplaceable. Level design for Warrior Race Game fell decisively in the latter category.
 
 \newpage
 
