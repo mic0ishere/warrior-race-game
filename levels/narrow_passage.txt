@@ -1,0 +1,62 @@
+# Narrow Passage - Medium Level
+# Multi-room layout with mixed enemy types and timed obstacles
+# Focus: Planning routes, timing movements, using power-ups strategically
+
+[CONFIG]
+TIME=75
+LIFES=4
+WIDTH=28
+HEIGHT=22
+START_X=1
+START_Y=1
+
+[TOTEMS]
+# Totems placed in different rooms requiring navigation
+(5,5) 10
+(14,10) 15
+(22,8) 20
+(25,19) 15
+
+[OBSTACLES]
+# Room dividers creating narrow passages
+(0,8) (10,9)
+(12,8) (27,9)
+(11,0) (12,21)
+(18,11) (19,21)
+(0,15) (8,16)
+(10,15) (17,16)
+
+[ENEMIES]
+# Mixed enemy types with moderate speeds
+PATROL (2,3) (9,3) (5,3) 2
+PATROL (20,3) (26,3) (23,3) 2
+RANDOM (13,2) (17,7) (15,4) 2
+CHASER (2,17) (9,21) (5,19) 3 7
+
+[AGGRESSIVE_OBSTACLES]
+# Spikes guarding key passages
+SPIKE (11,7) UP 2
+SPIKE (11,10) DOWN 2
+SPIKE (18,10) UP 2.5
+SPIKE (18,17) DOWN 2.5
+
+# Fire jets creating timing challenges
+FIREJET (9,10) RIGHT 2 8
+FIREJET (19,10) LEFT 2.5 7
+
+[POWERUPS]
+# Strategic power-up placement
+SHIELD (7,6)
+FREEZE (15,12)
+DOUBLE (20,18)
+
+[PASSIVE_OBSTACLES]
+# Teleport pads for quick travel
+TELEPORT (3,11) (3,11) 0 1
+TELEPORT (24,2) (24,2) 1 0
+
+# Sticky floor in choke points
+STICKY (11,11) (12,14)
+
+# Grass area obscuring part of chase zone
+GRASS (3,18) (8,21)

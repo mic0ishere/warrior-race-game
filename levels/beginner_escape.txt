@@ -1,0 +1,40 @@
+# Beginner Escape - Easy Level
+# A simple introductory level with basic obstacles and one slow patrol enemy
+# Focus: Learning movement, totem collection, and avoiding basic threats
+
+[CONFIG]
+TIME=90
+LIFES=5
+WIDTH=20
+HEIGHT=15
+START_X=1
+START_Y=1
+
+[TOTEMS]
+# Easy to reach totems with clear paths
+(5,5) 10
+(15,10) 15
+(18,13) 10
+
+[OBSTACLES]
+# Simple walls creating basic corridors
+(0,7) (19,8)
+(10,0) (11,6)
+(10,9) (11,14)
+
+[ENEMIES]
+# Single slow patrol enemy - predictable and easy to avoid
+PATROL (3,3) (8,3) (5,3) 1
+
+[AGGRESSIVE_OBSTACLES]
+# One spike with slow interval for learning
+SPIKE (7,7) DOWN 4
+
+[POWERUPS]
+# Shield near the start for safety
+SHIELD (2,3)
+DOUBLE (12,12)
+
+[PASSIVE_OBSTACLES]
+# Small sticky area to introduce mechanic
+STICKY (13,2) (16,5)

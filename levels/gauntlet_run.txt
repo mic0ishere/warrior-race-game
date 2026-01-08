@@ -1,0 +1,93 @@
+# Gauntlet Run - Hard Level
+# Complex maze with multiple fast enemies, aggressive obstacles, and limited time
+# Focus: Expert navigation, quick decision making, resource management
+
+[CONFIG]
+TIME=60
+LIFES=3
+WIDTH=35
+HEIGHT=25
+START_X=2
+START_Y=2
+
+[TOTEMS]
+# High-value totems in dangerous locations
+(8,8) 15
+(17,5) 20
+(28,10) 25
+(10,20) 20
+(32,22) 30
+
+[OBSTACLES]
+# Complex maze structure
+(0,6) (15,7)
+(17,6) (34,7)
+(5,0) (6,5)
+(12,0) (13,5)
+(20,0) (21,12)
+(28,0) (29,5)
+(8,9) (9,15)
+(15,9) (16,24)
+(22,8) (23,18)
+(0,13) (7,14)
+(10,13) (14,14)
+(17,13) (21,14)
+(24,13) (34,14)
+(0,20) (8,21)
+(17,20) (30,21)
+
+[ENEMIES]
+# Multiple fast enemies of all types
+PATROL (2,8) (7,8) (4,8) 3
+PATROL (24,8) (27,8) (25,8) 4
+PATROL (3,15) (7,15) (5,15) 3
+RANDOM (17,8) (21,12) (19,10) 3
+RANDOM (24,15) (34,19) (29,17) 4
+CHASER (0,0) (11,5) (6,3) 4 8
+CHASER (22,0) (34,5) (28,2) 4 10
+TELEPORTER (10,15) (14,19) (12,17) 5
+TELEPORTER (24,22) (34,24) (29,23) 4
+
+[AGGRESSIVE_OBSTACLES]
+# Dense spike fields
+SPIKE (16,6) UP 1.5
+SPIKE (16,7) DOWN 1.5
+SPIKE (20,8) UP 1
+SPIKE (20,9) DOWN 1
+SPIKE (20,10) UP 1
+SPIKE (20,11) DOWN 1
+SPIKE (8,13) DOWN 1.5
+SPIKE (9,13) LEFT 1.5
+SPIKE (22,13) DOWN 1
+SPIKE (23,13) RIGHT 1
+
+# Fast-firing fire jets in corridors
+FIREJET (6,7) RIGHT 1.5 8
+FIREJET (29,7) LEFT 1.5 7
+FIREJET (7,14) RIGHT 2 6
+FIREJET (34,14) LEFT 1.5 10
+FIREJET (8,21) RIGHT 2 8
+
+[POWERUPS]
+# Limited power-ups requiring risk to collect
+SHIELD (10,10)
+FREEZE (18,11)
+DOUBLE (26,18)
+LIFE (3,22)
+
+[PASSIVE_OBSTACLES]
+# Teleport pads creating shortcuts and escapes
+TELEPORT (30,3) (30,3) 0 1
+TELEPORT (5,23) (5,23) 1 0
+TELEPORT (25,10) (25,10) 2 3
+TELEPORT (12,22) (12,22) 3 2
+
+# Large sticky areas slowing escape
+STICKY (10,0) (11,5)
+STICKY (17,15) (21,19)
+STICKY (31,15) (34,19)
+
+# Grass areas obscuring enemy positions
+GRASS (2,9) (6,12)
+GRASS (24,9) (27,12)
+GRASS (18,22) (23,24)
