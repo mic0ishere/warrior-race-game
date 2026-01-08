@@ -18,13 +18,15 @@ START_Y=1
 (25,19) 15
 
 [OBSTACLES]
-# Room dividers creating narrow passages
-(0,8) (10,9)
-(12,8) (27,9)
-(11,0) (12,21)
-(18,11) (19,21)
-(0,15) (8,16)
-(10,15) (17,16)
+# Room dividers creating narrow passages with gaps for movement
+(0,8) (8,9)
+(14,8) (27,9)
+(11,0) (12,6)
+(11,11) (12,13)
+(11,17) (12,21)
+(18,13) (19,21)
+(0,15) (6,16)
+(10,15) (16,16)
 
 [ENEMIES]
 # Mixed enemy types with moderate speeds
@@ -51,9 +53,9 @@ FREEZE (15,12)
 DOUBLE (20,18)
 
 [PASSIVE_OBSTACLES]
-# Teleport pads for quick travel
-TELEPORT (3,11) (3,11) 0 1
-TELEPORT (24,2) (24,2) 1 0
+# Teleport pads for quick travel between rooms
+TELEPORT (9,7) (9,7) 0 1
+TELEPORT (13,7) (13,7) 1 0
 
 # Sticky floor in choke points
 STICKY (11,11) (12,14)
